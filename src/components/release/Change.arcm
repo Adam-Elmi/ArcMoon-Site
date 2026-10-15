@@ -1,0 +1,53 @@
+# ###################
+# One change in a release file: [Change = kind: "feature", title: "…", text: "one line, `code` allowed"]details[end:Change]
+# kind: "breaking", "feature", "improvement" or "fix". The version panel shows the title and text; this page also shows the details
+# ###################
+${
+  import { KINDS, slug, pieces } from "../../lib/releases.js";
+
+  const { kind, title, text = "" } = ArcMoon.props();
+  const label = KINDS.find((k) => k.id === kind)?.one ?? kind;
+  const line = pieces(text);
+}$
+[section = class: "change", id: ${ slug(title) }$, data-kind: ${ kind }$]
+  [span = class: "kind"]${ label }$[end]
+  [h3]${ title }$[end]
+  [p = class: "line"][for-each = ${ line }$, as: "p"][for-each = ${ p.code ? [p.text] : [] }$, as: "c"][code]${ c }$[end][end][for-each = ${ p.code ? [] : [p.text] }$, as: "t"]${ t }$[end][end][end]
+  [div = class: "details"][slot!][end]
+[end]
+
+[style]
+  .change {
+    --k: var(--pick-6);
+    margin: 0 0 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--k);
+    border-radius: 0 12px 12px 0;
+    scroll-margin-top: 128px;
+  }
+  .change[data-kind="breaking"] { --k: var(--pick-1); }
+  .change[data-kind="feature"] { --k: var(--pick-5); }
+  .change[data-kind="improvement"] { --k: var(--pick-2); }
+  .change[data-kind="fix"] { --k: var(--pick-3); }
+  .kind {
+    font: 500 11px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--k);
+  }
+  h3 {
+    margin: 8px 0 4px;
+    font: 600 18px/1.35 var(--sans);
+  }
+  .line {
+    margin: 0;
+    color: var(--muted);
+  }
+  .details :global(> :first-child) {
+    margin-top: 14px;
+  }
+  .details :global(> :last-child) {
+    margin-bottom: 0;
+  }
+[end]

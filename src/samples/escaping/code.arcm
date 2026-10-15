@@ -1,0 +1,5 @@
+${ const path = "C:\\Users"; }$
+[p]${ path }$[end]
+[style]
+  p::before { content: "\201C"; }
+[end]

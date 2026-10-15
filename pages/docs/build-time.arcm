@@ -1,0 +1,229 @@
+# ###################
+# Docs: Build-time code
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+[import = Note: "@/components/docs/Note.arcm" !]
+
+[Docs = slug: "build-time"]
+  [Title = id: "what"]What it is[end:Title]
+  [Text][hl = text: "${ }$" !] is JavaScript that runs in Node.js while the page is built. Only its result goes into the HTML; the browser never sees the code:[end:Text]
+  [Code = output: true, text: '
+    ${ const year = 2026; }$
+    [footer]© ${ year }$ My site[end]
+  ' !]
+
+  [Title = id: "how"]How it works[end:Title]
+
+  [Title = size: 3, id: "how-node"]It runs in Node.js, while building[end:Title]
+  [Text]The code runs once per build, before any visitor sees the page. Its [hl = text: "console.log" !] prints in your terminal, not in the browser:[end:Text]
+  [Code = text: '
+    ${ console.log("Building the home page"); }$
+  ' !]
+
+  [Title = size: 3, id: "how-components"]It runs again for each use of a component[end:Title]
+  [Text]Every use gets its own props, so the same code can write different HTML:[end:Text]
+  [Code = text: '
+    [Card = title: "First" !]    # Card.arcm runs with title "First"
+    [Card = title: "Second" !]   # and again with title "Second"
+  ' !]
+
+  [Title = id: "rules"]Rules[end:Title]
+  [Text]Break one of these and your code stops the build or doesn\'t do what you expect.[end:Text]
+
+  [Title = size: 3, id: "rule-node"]1. There is no browser[end:Title]
+  [Text][hl = text: "document" !], [hl = text: "window" !] and the page's elements don\'t exist yet. Use runtime code for those:[end:Text]
+  [Code = text: '
+    # ✗ ReferenceError: document is not defined
+    [p]${ document.title }$[end]
+
+    # ✓ runs in the browser
+    [p]runtime ${ document.title }$[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-output"]2. The last expression is the output[end:Title]
+  [Text]For several statements, end with [hl = text: "return" !]. It must be the last statement, not inside an [hl = text: "if" !]:[end:Text]
+  [Code = text: '
+    # ✗ return is only allowed as the last statement of ${ }$
+    [p]${ if (ready) { return "Ready"; } }$[end]
+
+    # ✓ right
+    [p]${ ready ? "Ready" : "Not yet" }$[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-values"]3. Output text, numbers, { raw }, arrays, or nothing[end:Title]
+  [Text]Other objects stop the build. Output a field of the object instead:[end:Text]
+  [Code = text: '
+    ${ const user = { name: "Adam" }; }$
+
+    # ✗ can\'t render [object Object]; return text, { raw }, or an array
+    [p]${ user }$[end]
+
+    # ✓ right
+    [p]${ user.name }$[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-scope"]4. Variables live where you make them[end:Title]
+  [Text]At the top of the file, they work everywhere below. Inside an element, they end when it closes:[end:Text]
+  [Code = text: '
+    ${ const site = "My site"; }$
+    [header]${ site }$[end]          # ✓ top level: works below
+
+    [div]${ const inner = 1; }$[end]
+    [p]${ inner }$[end]              # ✗ ReferenceError: inner is not defined
+  ' !]
+
+  [Title = size: 3, id: "rule-components"]5. Components use [hl = text: "[import]" !], not JavaScript import[end:Title]
+  [Code = text: '
+    # ✗ Unknown file extension ".arcm"
+    ${ import Card from "./Card.arcm"; }$
+
+    # ✓ right
+    [import = Card: "./Card.arcm" !]
+  ' !]
+
+  [Title = size: 3, id: "rule-install"]6. ArcMoon never installs packages[end:Title]
+  [Text]Install them first, or the import fails:[end:Text]
+  [Code = lang: "bash", text: "npm install dayjs" !]
+  [Code = text: '
+    ${ import dayjs from "dayjs"; }$
+    [p]Built ${ dayjs().format("D MMM YYYY") }$[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-props"]7. Read a component\'s props at the top of its file[end:Title]
+  [Text]Inside an element, [hl = text: "ArcMoon.props()" !] returns that element\'s props instead:[end:Text]
+  [Code = title: "Card.arcm", text: '
+    ${ const { title } = ArcMoon.props(); }$   # ✓ the component\'s props
+    [h2]${ title }$[end]
+    [h2]${ ArcMoon.props().title }$[end]       # ✗ the [h2]\'s props
+  ' !]
+  [Code = lang: "log", text: '
+    ⚠ Card.arcm:3:7  ArcMoon.props() inside [h2] returns the [h2]\'s props, which have no "title"; for the component\'s props, call it at the top of the file
+  ' !]
+
+  [Title = size: 3, id: "rule-time"]8. Code has a time limit[end:Title]
+  [Text]Each page gets 5 seconds, its components included. Slower code is stopped; raise [hl = text: "timeout" !] in [hl = text: "arcmoon.config.js" !] if a page needs more:[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { timeout: 10000 };
+  ' !]
+
+  [Title = id: "output"]What it outputs[end:Title]
+  [Text]The last expression is the output. Try it: change the values and press Run:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    [p]${ 6 * 7 }$[end]
+    [p]${ "<b>escaped</b>" }$[end]
+    [p]${ { raw: "<b>written as HTML</b>" } }$[end]
+    [p]${ ["one", " two", " three"] }$[end]
+    [p]Nothing here: ${ null }$${ false }$[end]
+  ' !]
+  [List]
+    [Item]Text and numbers are escaped, so [hl = text: "<b>" !] shows as text.[end:Item]
+    [Item][hl = text: "{ raw: \"…\" }" !] writes HTML as it is.[end:Item]
+    [Item]An array writes each item.[end:Item]
+    [Item][hl = text: "null" !], [hl = text: "undefined" !], [hl = text: "true" !] and [hl = text: "false" !] write nothing. Other objects stop the build.[end:Item]
+  [end:List]
+  [Text]For more than one line, end with [hl = text: "return" !]:[end:Text]
+  [Code = output: true, text: '
+    [p]${
+      const items = ["tea", "cake"];
+      return items.join(" and ");
+    }$[end]
+  ' !]
+
+  [Title = id: "variables"]Variables[end:Title]
+  [Text]A variable made at the top of the file can be used anywhere below it:[end:Text]
+  [Code = output: true, text: '
+    ${ const name = "Adam"; }$
+    [h1]Hi, ${ name }$[end]
+    [p]${ name.toUpperCase() }$[end]
+  ' !]
+  [Text]One made inside an element only lives until that element closes:[end:Text]
+  [Code = lang: "log", text: '
+    [div]${ const inner = 1; }$[end]
+    [p]${ inner }$[end]
+
+    ✗ ReferenceError: inner is not defined
+  ' !]
+
+  [Title = id: "imports"]Imports and files[end:Title]
+  [Text]Import [hl = text: ".js" !] and [hl = text: ".json" !] files, [hl = text: "node:" !] modules and npm packages. Relative paths start from the [hl = text: ".arcm" !] file:[end:Text]
+  [Code = lang: "json", title: "site.json", file: "src/samples/build-time/site.json" !]
+  [Code = lang: "js", title: "format.js", file: "src/samples/build-time/format.js" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/build-time/imports.arcm" !]
+  [List]
+    [Item]JSON works with named imports: [hl = text: "import { name } from \"./site.json\"" !].[end:Item]
+    [Item]To read a file next to the page, use [hl = text: "new URL(\"./file\", import.meta.url)" !].[end:Item]
+    [Item]Components are imported with [hl = text: "[import]" !], not with JavaScript [hl = text: "import" !].[end:Item]
+    [Item]ArcMoon never installs packages: run [hl = text: "npm install" !] yourself.[end:Item]
+  [end:List]
+
+  [Title = id: "await"]Waiting for data[end:Title]
+  [Text][hl = text: "await" !] works at the top of [hl = text: "${ }$" !], so the page can wait for files or an API:[end:Text]
+  [Code = text: '
+    ${
+      const res = await fetch("https://api.github.com/repos/Adam-Elmi/ArcMoon");
+      const repo = await res.json();
+    }$
+    [p]${ repo.stargazers_count }$ stars[end]
+  ' !]
+
+  [Title = id: "arcmoon"]The ArcMoon object[end:Title]
+  [List]
+    [Item][hl = text: "ArcMoon.version" !]: the ArcMoon version, e.g. [hl = text: "1.0.0" !].[end:Item]
+    [Item][hl = text: "ArcMoon.props()" !]: the props a component was given. See [Link = text: "Components", href: "components.html" !].[end:Item]
+  [end:List]
+  [Text]For everything else, use plain Node.js: [hl = text: "fetch" !], [hl = text: "process.env" !], [hl = text: "node:fs" !].[end:Text]
+
+  [Title = id: "tips"]Tips[end:Title]
+  [Text]Your code works either way, but these make it better.[end:Text]
+
+  [Title = size: 3, id: "tip-paths"]Read files relative to the page[end:Title]
+  [Text]A plain path is read from the folder you run [hl = text: "arcm build" !] in, so it breaks when you build from elsewhere. [hl = text: "import.meta.url" !] always starts at the [hl = text: ".arcm" !] file:[end:Text]
+  [Code = text: '
+    ${ import { readFileSync } from "node:fs"; }$
+
+    # ✗ depends on where you run arcm build
+    [p]${ readFileSync("note.txt", "utf8") }$[end]
+
+    # ✓ always next to this file
+    [p]${ readFileSync(new URL("./note.txt", import.meta.url), "utf8") }$[end]
+  ' !]
+
+  [Title = size: 3, id: "tip-secrets"]Keep secrets at build time[end:Title]
+  [Text]Use API keys in [hl = text: "${ }$" !] freely: the code never reaches the browser. But anything you output or [hl = text: "export" !] is in the page for every visitor:[end:Text]
+  [Code = text: '
+    ${
+      const key = process.env.API_KEY;
+      const res = await fetch(`https://api.example.com/stats?key=${key}`);
+      const stats = await res.json();
+    }$
+    [p]${ stats.visits }$ visits[end]   # ✓ only the result is in the page
+  ' !]
+
+  [Title = size: 3, id: "tip-raw"]Use { raw } only for HTML you trust[end:Title]
+  [Text][hl = text: "{ raw }" !] writes HTML as it is, scripts included. For text from users or other sites, output it plainly so it\'s escaped.[end:Text]
+
+  [Title = size: 3, id: "tip-static"]Prefer build-time code for values that never change[end:Title]
+  [Text][hl = text: "${ }$" !] writes the value into the HTML: no script, and it shows before any JavaScript loads. Use runtime code only for what changes in the browser.[end:Text]
+
+  [Title = id: "limits"]Errors and limits[end:Title]
+  [Text]An error stops the build and points to the spot in the [hl = text: ".arcm" !] file:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ ReferenceError: undefinedThing is not defined
+      page.arcm:1:7
+  ' !]
+  [Text]Each page's code gets 5 seconds; change it with [hl = text: "timeout" !] in [Link = text: "arcmoon.config.js", href: "cli.html" !]. Slower code is stopped:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ page.arcm  ${ }$ code took longer than 5000 ms and was stopped
+  ' !]
+  [Note = type: "warning"]
+    [Text]Build-time code runs with your full access: files, network, environment. Only build [hl = text: ".arcm" !] files you trust.[end:Text]
+  [end:Note]
+[end:Docs]

@@ -1,0 +1,499 @@
+/* ###################
+   ArcMoon site: colors, type, page and code styles
+   Light: pure white with the logo's rose. Dark: the same, turned over
+   ################### */
+
+:root {
+	--bg: #ffffff;
+	--surface: #fafafa;
+	--sunken: #f4f4f5;
+	--ink: #18181b;
+	--muted: #52525b;
+	--faint: #a1a1aa;
+	--line: #ececef;
+	--line-strong: #d4d4d8;
+	--accent: #d7263d;
+	--accent-ink: #b81d32;
+	--accent-soft: #fdecee;
+	--on-accent: #ffffff;
+	--emerald: #047857;
+	--emerald-soft: #d1fae5;
+
+	--code-bg: #fafafa;
+	--code-line: #ececef;
+	--arcm-punct: #8a8a96;
+	--arcm-tag: #b81d32;
+	--arcm-key: #1d6fb8;
+	--arcm-string: #1f7a4a;
+	--arcm-number: #a65f00;
+	--arcm-keyword: #7c3aed;
+	--arcm-logic: #0e7490;
+	--arcm-comment: #9a9aa5;
+	--arcm-text: #27272a;
+	--arcm-call: #8a5300;
+
+	/* selectColor 1 to 6 in docs components: rose, blue, green, amber, violet, grey */
+	--pick-1: #d7263d;
+	--pick-2: #1d6fb8;
+	--pick-3: #1f7a4a;
+	--pick-4: #a65f00;
+	--pick-5: #7c3aed;
+	--pick-6: #52525b;
+
+	--sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+	--serif: "IBM Plex Serif", Georgia, serif;
+	--mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+
+	--page: 1180px;
+	--gutter: clamp(16px, 4vw, 40px);
+	color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+	--bg: #0e0e10;
+	--surface: #151518;
+	--sunken: #1a1a1e;
+	--ink: #ededf0;
+	--muted: #a6a6b0;
+	--faint: #6e6e78;
+	--line: #232328;
+	--line-strong: #3a3a42;
+	--accent: #ff5c72;
+	--accent-ink: #ff7a8c;
+	--accent-soft: #2e1218;
+	--on-accent: #16070a;
+	--emerald: #34d399;
+	--emerald-soft: #0f2e24;
+
+	--code-bg: #141417;
+	--code-line: #232328;
+	--arcm-punct: #7b7b88;
+	--arcm-tag: #ff7a8c;
+	--arcm-key: #7cc4ff;
+	--arcm-string: #8fdba8;
+	--arcm-number: #f5b971;
+	--arcm-keyword: #c4a3ff;
+	--arcm-logic: #67d4e8;
+	--arcm-comment: #6e6e78;
+	--arcm-text: #e4e4e8;
+	--arcm-call: #f0d38a;
+	--pick-1: #ff5c72;
+	--pick-2: #7cc4ff;
+	--pick-3: #8fdba8;
+	--pick-4: #f5b971;
+	--pick-5: #c4a3ff;
+	--pick-6: #a6a6b0;
+	color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	scroll-padding-top: 72px;
+}
+
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--ink);
+	font-family: var(--sans);
+	font-size: 16px;
+	line-height: 1.65;
+	-webkit-font-smoothing: antialiased;
+}
+
+a {
+	color: inherit;
+}
+
+::selection {
+	background: var(--accent-soft);
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.page {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+}
+
+.page > main {
+	flex: 1;
+}
+
+.wrap {
+	width: 100%;
+	max-width: var(--page);
+	margin: 0 auto;
+	padding: 0 var(--gutter);
+}
+
+/* ###################
+   Code: [Code] blocks and `inline` code
+   ################### */
+code,
+pre,
+kbd {
+	font-family: var(--mono);
+	font-size: 0.875em;
+}
+
+:not(pre) > code {
+	white-space: nowrap;
+	padding: 0.1em 0.35em;
+	background: var(--sunken);
+	border-radius: 4px;
+	font-size: 0.85em;
+}
+
+.code {
+	margin: 20px 0;
+	background: var(--code-bg);
+	border: 1px solid var(--code-line);
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+.code figcaption,
+.code .out-label {
+	padding: 8px 14px;
+	font: 500 12px/1 var(--mono);
+	color: var(--muted);
+	border-bottom: 1px solid var(--code-line);
+}
+
+.code .out-label {
+	border-top: 1px solid var(--code-line);
+}
+
+.code pre {
+	margin: 0;
+	padding: 14px 16px;
+	overflow-x: auto;
+	line-height: 1.6;
+	tab-size: 2;
+	color: var(--arcm-text);
+}
+
+/* ArcMoon's messages wrap instead of scrolling: they're long sentences */
+.code[data-lang="log"] pre {
+	white-space: pre-wrap;
+}
+
+.code pre.out {
+	background: var(--bg);
+}
+
+.arcm-open-bracket,
+.arcm-close-bracket,
+.arcm-equal,
+.arcm-colon,
+.arcm-comma,
+.arcm-js-operator {
+	color: var(--arcm-punct);
+}
+
+.arcm-identifier,
+.arcm-end-keyword {
+	color: var(--arcm-tag);
+}
+
+.arcm-end-keyword {
+	font-weight: 500;
+}
+
+.arcm-import,
+.arcm-slot,
+.arcm-for-each,
+.arcm-runtime-keyword,
+.arcm-js-keyword,
+.arcm-exclamation-mark {
+	color: var(--arcm-keyword);
+}
+
+.arcm-key,
+.arcm-js-key,
+.arcm-js-property {
+	color: var(--arcm-key);
+}
+
+.arcm-string,
+.arcm-js-string {
+	color: var(--arcm-string);
+}
+
+.arcm-number,
+.arcm-boolean,
+.arcm-js-number,
+.arcm-word,
+.arcm-escape,
+.arcm-js-regex {
+	color: var(--arcm-number);
+}
+
+.arcm-logic-open,
+.arcm-logic-close {
+	color: var(--arcm-logic);
+}
+
+.arcm-js-call {
+	color: var(--arcm-call);
+}
+
+/* ###################
+   ArcMoon's messages (Code lang: "log")
+   ################### */
+.arcm-log-warn {
+	color: var(--arcm-number);
+}
+
+.arcm-log-error {
+	color: var(--arcm-tag);
+}
+
+.arcm-log-at {
+	color: var(--faint);
+}
+
+/* ###################
+   JSON (Prism's json tokens, renamed arcm-json-…)
+   ################### */
+.arcm-json-property {
+	color: var(--arcm-key);
+}
+
+.arcm-json-string {
+	color: var(--arcm-string);
+}
+
+.arcm-json-number,
+.arcm-json-boolean,
+.arcm-json-null {
+	color: var(--arcm-number);
+}
+
+.arcm-json-punctuation,
+.arcm-json-operator {
+	color: var(--arcm-punct);
+}
+
+/* ###################
+   HTML (Prism's markup tokens, renamed arcm-…)
+   ################### */
+.arcm-tag {
+	color: var(--arcm-tag);
+}
+
+.arcm-tag .arcm-punctuation,
+.arcm-attr-equals {
+	color: var(--arcm-punct);
+}
+
+.arcm-attr-name {
+	color: var(--arcm-key);
+}
+
+.arcm-attr-value {
+	color: var(--arcm-string);
+}
+
+.arcm-doctype,
+.arcm-prolog,
+.arcm-cdata {
+	color: var(--arcm-comment);
+}
+
+.arcm-entity {
+	color: var(--arcm-number);
+}
+
+/* ###################
+   CSS in [style] and in style: / css. / -- props (arcmoon-highlight 1.2)
+   ################### */
+.arcm-css-selector,
+.arcm-css-class,
+.arcm-css-id,
+.arcm-css-pseudo {
+	color: var(--arcm-call);
+}
+
+.arcm-css-at-rule,
+.arcm-css-important {
+	color: var(--arcm-keyword);
+}
+
+.arcm-css-property,
+.arcm-css-variable,
+.arcm-css-attribute {
+	color: var(--arcm-key);
+}
+
+.arcm-css-value,
+.arcm-css-color,
+.arcm-css-string {
+	color: var(--arcm-string);
+}
+
+.arcm-css-number {
+	color: var(--arcm-number);
+}
+
+.arcm-css-function {
+	color: var(--arcm-logic);
+}
+
+.arcm-css-punctuation {
+	color: var(--arcm-punct);
+}
+
+.arcm-css-comment {
+	color: var(--arcm-comment);
+	font-style: italic;
+}
+
+/* ###################
+   Shell commands (Code with lang: "bash")
+   ################### */
+.arcm-sh-command {
+	color: var(--arcm-keyword);
+	font-weight: 500;
+}
+
+.arcm-sh-sub {
+	color: var(--arcm-key);
+}
+
+.arcm-sh-flag {
+	color: var(--arcm-number);
+}
+
+.arcm-sh-string {
+	color: var(--arcm-string);
+}
+
+.arcm-sh-operator {
+	color: var(--arcm-punct);
+}
+
+.arcm-comment,
+.arcm-comment-block,
+.arcm-js-comment,
+.arcm-sh-comment {
+	color: var(--arcm-comment);
+	font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0s !important;
+		animation-duration: 0s !important;
+	}
+}
+
+/* ###################
+   Docs text: global, because page content keeps the page's scope
+   ################### */
+.prose h2 {
+	margin: 48px 0 12px;
+	font: 600 22px/1.3 var(--sans);
+	letter-spacing: -0.01em;
+}
+
+.prose h3 {
+	margin: 32px 0 8px;
+	font: 600 17px/1.4 var(--sans);
+}
+
+.prose p,
+.prose ul,
+.prose ol {
+	margin: 0 0 16px;
+}
+
+.prose ul,
+.prose ol {
+	padding-left: 22px;
+}
+
+.prose li {
+	margin: 4px 0;
+}
+
+.prose a {
+	color: var(--accent-ink);
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+	text-underline-offset: 3px;
+}
+
+.prose a:hover {
+	text-decoration-color: var(--accent);
+}
+
+.prose table {
+	width: 100%;
+	margin: 20px 0;
+	border-collapse: collapse;
+	font-size: 15px;
+}
+
+.prose th,
+.prose td {
+	padding: 9px 12px;
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 1px solid var(--line);
+}
+
+.prose th {
+	font-weight: 600;
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.prose .note {
+	margin: 20px 0;
+	padding: 12px 16px;
+	background: var(--accent-soft);
+	border-left: 3px solid var(--accent);
+	border-radius: 0 8px 8px 0;
+}
+
+.prose .note p:last-child {
+	margin-bottom: 0;
+}
+
+/* ###################
+   Docs components: hl (inline code), Link, and the selectColor picks
+   ################### */
+code.hl {
+	white-space: nowrap;
+}
+
+.pick-1 { --pick: var(--pick-1); }
+.pick-2 { --pick: var(--pick-2); }
+.pick-3 { --pick: var(--pick-3); }
+.pick-4 { --pick: var(--pick-4); }
+.pick-5 { --pick: var(--pick-5); }
+.pick-6 { --pick: var(--pick-6); }
+
+code.hl[class*="pick-"] {
+	color: var(--pick);
+	background: color-mix(in srgb, var(--pick) 12%, transparent);
+}
+
+a.link[class*="pick-"] {
+	color: var(--pick);
+	text-decoration-color: color-mix(in srgb, var(--pick) 40%, transparent);
+}

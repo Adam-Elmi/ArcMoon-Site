@@ -1,0 +1,8 @@
+${ const { value = 0 } = ArcMoon.props(); }$
+[div = class: "bar"]
+  [div = class: "fill", --progress: ${ value + "%" }$][end]
+[end]
+[style]
+  .bar { background: #eee; height: 8px; }
+  .fill { width: var(--progress); height: 100%; background: tomato; }
+[end]

@@ -1,0 +1,8 @@
+[import = Card: "./Card.arcm" !]
+# a comment
+${ const n = 2; }$
+[main]
+  [p]${ n }$[end]
+
+  [p]a blank line above stays[end]
+[end]

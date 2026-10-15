@@ -1,0 +1,5 @@
+${ const { header } = ArcMoon.props(); }$
+[article = class: "card"]
+  [header]${ header }$[end]
+  [slot!]
+[end]

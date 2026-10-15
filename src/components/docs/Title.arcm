@@ -1,0 +1,10 @@
+# ###################
+# A heading: [Title = size: 2]…[end:Title], size 1 to 6 (default 2). id: for links to it
+# ###################
+${ const { size = 2 } = ArcMoon.props(); }$
+[for-each = ${ size === 1 ? [1] : [] }$][h1][slot!][end][end]
+[for-each = ${ size === 2 ? [1] : [] }$][h2][slot!][end][end]
+[for-each = ${ size === 3 ? [1] : [] }$][h3][slot!][end][end]
+[for-each = ${ size === 4 ? [1] : [] }$][h4][slot!][end][end]
+[for-each = ${ size === 5 ? [1] : [] }$][h5][slot!][end][end]
+[for-each = ${ size === 6 ? [1] : [] }$][h6][slot!][end][end]

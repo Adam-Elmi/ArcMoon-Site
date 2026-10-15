@@ -1,0 +1,4 @@
+[p = title: "Say \"hi\""]Double quotes[end]
+[p = title: 'It\'s fine']Single quotes[end]
+[p = title: "C:\Users\Adam"]Other backslashes stay[end]
+[p = title: "a: b, c = d, [x] #1"]Nothing else needs escaping[end]

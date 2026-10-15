@@ -1,0 +1,10 @@
+${ const { title = "My site" } = ArcMoon.props(); }$
+[doctype!]
+[html = lang: "en"]
+  [head][title]${ title }$[end][end]
+  [body]
+    [header]My site[end]
+    [main][slot!][end]
+    [footer]© 2026[end]
+  [end]
+[end]

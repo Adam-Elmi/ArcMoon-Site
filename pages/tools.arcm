@@ -1,0 +1,27 @@
+# ###################
+# Tools: a card for each tool in src/data/tools.json (name, version, one line); each opens tools/<slug>.html
+# ###################
+[import = Catalog: "@/layouts/Catalog.arcm" !]
+[import = LinkCard: "@/components/LinkCard.arcm" !]
+
+${
+  import tools from "../src/data/tools.json";
+  import { latest } from "../src/lib/npm.js";
+
+  const cards = await Promise.all(tools.map(async (t, i) => ({
+    ...t,
+    n: String(i + 1).padStart(2, "0"),
+    version: await latest(t.name),
+    href: `tools/${t.slug}.html`,
+    find: `${t.name} ${t.summary} ${t.keywords.join(" ")}`.toLowerCase()
+  })));
+}$
+
+[Catalog = title: "Tools", description: "Tools for working with ArcMoon: editor support, syntax highlighting and more.", section: "tools", kicker: "Tools", heading: "Tools for ArcMoon", intro: "Helpful tools for writing ArcMoon: editor support, highlighting, and more to come.", placeholder: "Search tools", empty: "No tool matches"]
+  [ul = class: "cards"]
+    [for-each = ${ cards }$, as: "tool"]
+      [li = data-find: ${ tool.find }$][LinkCard = href: ${ tool.href }$, title: ${ tool.name }$, text: ${ tool.short }$, n: ${ tool.n }$, version: ${ tool.version }$ !][end]
+    [end]
+  [end]
+[end:Catalog]
+

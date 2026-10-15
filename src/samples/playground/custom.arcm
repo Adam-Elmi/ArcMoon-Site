@@ -1,0 +1,12 @@
+# A component: main.arcm imports it as Custom, passes a title, and puts text in its slot
+${ const { title = "Card" } = ArcMoon.props(); }$
+
+[section = class: "card"]
+  [h2]${ title }$[end:h2]
+  [slot!]
+[end:section]
+
+[style]
+  .card { margin: 12px 0; padding: 12px 16px; border: 2px solid #d7263d; border-radius: 12px; }
+  h2 { margin: 0 0 4px; color: #d7263d; }
+[end:style]

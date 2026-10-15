@@ -1,0 +1,1310 @@
+# ###################
+# Playground: two files on the left (main.arcm, and custom.arcm, a component it uses), the result on the right.
+# Showcases (src/samples/playground/<slug>/main.arcm, listed in showcases.json) are picked in the toolbar.
+# Only the one marked "custom" (Getting started) uses custom.arcm (src/samples/playground/custom.arcm); the others empty it.
+# Settings (top bar) holds the compiler's options (import aliases, remove comments, timeout) and the output's
+# (outDir, externalScripts, externalStyles), used by "Download dist.zip".
+# The page is built from src/samples/playground/; in the browser, ArcMoon's browser build compiles the files
+# a moment after you stop typing (or Run, Ctrl+Enter). The result runs in a sandboxed frame
+# ###################
+[import = Site: "@/layouts/Site.arcm" !]
+
+${
+  import { readFileSync } from "node:fs";
+  import { staticHighlight } from "arcmoon-highlight";
+  import Compiler from "arcmoon";
+
+  // ###################
+  // The showcases (a main.arcm each) and the example component (custom.arcm).
+  // The first showcase is highlighted for the first paint (before the editors load)
+  // ###################
+  const dir = "src/samples/playground";
+  const list = JSON.parse(readFileSync(`${dir}/showcases.json`, "utf8"));
+
+  // ###################
+  // Tab icons: the ArcMoon logo (its clipPath ids get the tab's prefix, so copies don't repeat)
+  // ###################
+  const logo = readFileSync("src/logo.svg", "utf8").replace(/<metadata>[\s\S]*?<\/metadata>/, "");
+  const arcmIcon = (id) => logo.replace(/id="(\w+)"/g, `id="pg-${id}-$1"`).replace(/url\(#(\w+)\)/g, `url(#pg-${id}-$1)`);
+  const read = (path) => readFileSync(`${dir}/${path}`, "utf8").replace(/\s+$/, "");
+  export const showcases = Object.fromEntries(list.map((x) => [x.slug, { title: x.title, main: read(`${x.slug}/main.arcm`), custom: Boolean(x.custom) }]));
+  export const startCustom = read("custom.arcm");
+  export const firstSlug = list[0].slug;
+  const startFiles = { main: showcases[firstSlug].main, custom: startCustom };
+  const choices = list.map((x, i) => ({ ...x, selected: i === 0 }));
+  const tabs = [
+    { id: "main", name: "main.arcm" },
+    { id: "custom", name: "custom.arcm" }
+  ].map((t, i) => ({ ...t, code: { raw: staticHighlight(startFiles[t.id], { classPrefix: "arcm-" }) }, icon: { raw: arcmIcon(t.id) }, selected: String(i === 0), tabindex: i === 0 ? 0 : -1 }));
+
+  // ###################
+  // The settings' starting values: the browser compiler's options (like arcmoon.config.js)
+  // ###################
+  export const startSettings = { aliases: [["@", "./"]], removeComments: true, timeout: 5000, outDir: "dist", externalScripts: false, externalStyles: false };
+
+  // ###################
+  // Every showcase is compiled here, so a broken one stops the site's build ("@" points at the folder
+  // with custom.arcm); the first one's result is shown before the editors load
+  // ###################
+  export const frameStyle = "<style>body{margin:20px;font:15px/1.55 system-ui,sans-serif;color:#18181b;background:#fff}button{font:inherit;padding:6px 14px;cursor:pointer}</style>";
+  const built = {};
+  for (const x of list) {
+    built[x.slug] = await new Compiler({ filename: `${dir}/${x.slug}/main.arcm`, importAliases: { "@": dir }, removeComments: true, onWarning() {} }).compile();
+  }
+  const firstPage = frameStyle + built[firstSlug];
+
+  // ###################
+  // The compiler, at the version this site is built with. The editor (arcmoon-highlight) is bundled
+  // into this page: see bundle in arcmoon.config.js
+  // ###################
+  export const compilerUrl = `https://cdn.jsdelivr.net/npm/arcmoon@${ArcMoon.version}/dist/browser.js`;
+  export const startStatus = "Ready";
+}$
+
+runtime ${
+  import { signal } from "arcmoon/reactive";
+  import { attachHighlighter } from "arcmoon-highlight/dynamic";
+
+  const app = ArcMoon.ref(ArcMoon.defineRef("pg"));
+  const boxes = Object.fromEntries(ArcMoon.refs(ArcMoon.defineRef("pg-editor")).map((b) => [b.dataset.file, b]));
+  const frame = ArcMoon.ref(ArcMoon.defineRef("pg-frame"));
+  const problem = ArcMoon.ref(ArcMoon.defineRef("pg-error"));
+  const notes = ArcMoon.ref(ArcMoon.defineRef("pg-notes"));
+  const tabs = ArcMoon.refs(ArcMoon.defineRef("pg-tab"));
+  const panel = ArcMoon.ref(ArcMoon.defineRef("pg-settings"));
+  const backdrop = ArcMoon.ref(ArcMoon.defineRef("pg-backdrop"));
+  const aliasList = ArcMoon.ref(ArcMoon.defineRef("pg-aliases"));
+  const aliasRow = ArcMoon.ref(ArcMoon.defineRef("pg-alias-row"));
+  const comments = ArcMoon.ref(ArcMoon.defineRef("pg-comments"));
+  const wait = ArcMoon.ref(ArcMoon.defineRef("pg-timeout"));
+  const outDir = ArcMoon.ref(ArcMoon.defineRef("pg-outdir"));
+  const extScripts = ArcMoon.ref(ArcMoon.defineRef("pg-ext-scripts"));
+  const extStyles = ArcMoon.ref(ArcMoon.defineRef("pg-ext-styles"));
+  const zipLabel = ArcMoon.ref(ArcMoon.defineRef("pg-zip-label"));
+  const outPane = ArcMoon.ref(ArcMoon.defineRef("pg-output"));
+  const filesPane = ArcMoon.ref(ArcMoon.defineRef("pg-files"));
+  const picker = ArcMoon.ref(ArcMoon.defineRef("pg-example"));
+  // ###################
+  // Saved state, in this browser only: the last example, the settings, and one draft per
+  // example ({ main, custom }). Storage can be blocked (private windows), so every access is guarded
+  // ###################
+  const STORE = "arcmoon-playground";
+  const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  const readStore = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORE) ?? "{}");
+      if (!isObject(saved)) return { drafts: {} };
+      // keep only what has the right shape; anything else starts fresh
+      const drafts = isObject(saved.drafts) ? saved.drafts : {};
+      for (const [slug, d] of Object.entries(drafts)) {
+        if (!isObject(d) || typeof d.main !== "string" || typeof d.custom !== "string") delete drafts[slug];
+      }
+      return { drafts, last: typeof saved.last === "string" ? saved.last : null, settings: isObject(saved.settings) ? saved.settings : null };
+    } catch {
+      return { drafts: {} };
+    }
+  };
+  const store = readStore();
+  const writeStore = () => {
+    try {
+      localStorage.setItem(STORE, JSON.stringify(store));
+    } catch {}
+  };
+
+  // the showcase the address asks for (#example=…), else the last one, before the editors open
+  const asked = new URLSearchParams(location.hash.slice(1)).get("example");
+  let current = showcases[asked] ? asked : showcases[store.last] ? store.last : firstSlug;
+  picker.value = current;
+  const status = signal(startStatus);
+  // said once, after the first build, when a draft was brought back
+  let notice = store.drafts[current] ? " · restored your last edit" : "";
+
+  const editors = {};
+  let Browser = null;
+  let timer = null;
+  let runs = 0;
+
+  // ###################
+  // Tabs: the files on the left, Result / HTML on the right (data-* on the app; CSS shows the right panel)
+  // ###################
+  const openFile = (id) => {
+    app.dataset.tab = id;
+    for (const tab of tabs) {
+      const on = tab.dataset.file === id;
+      tab.setAttribute("aria-selected", String(on));
+      tab.tabIndex = on ? 0 : -1;
+    }
+    editors[id]?.view?.focus?.();
+  };
+  const fileTab = (e) => {
+    const tab = e.target.closest("[data-file]");
+    if (tab) openFile(tab.dataset.file);
+  };
+  const fileKeys = (e) => {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    const ids = tabs.map((t) => t.dataset.file);
+    const next = ids[(ids.indexOf(app.dataset.tab) + step + ids.length) % ids.length];
+    openFile(next);
+    tabs.find((t) => t.dataset.file === next).focus();
+  };
+  // ###################
+  // Settings: the browser compiler's options, read from the panel's fields
+  // ###################
+  const settings = () => {
+    const importAliases = {};
+    for (const row of aliasList.querySelectorAll("li")) {
+      const [alias, target] = [...row.querySelectorAll("input")].map((i) => i.value.trim());
+      if (alias && target) importAliases[alias] = target;
+    }
+    const ms = Number(wait.value);
+    return { importAliases, removeComments: comments.checked, timeout: ms >= 100 ? Math.min(ms, 20000) : 5000 };
+  };
+  // ###################
+  // The output: a folder name (letters, digits, - _ . and /), and where JS and CSS go
+  // ###################
+  const output = () => {
+    const dir = outDir.value.trim().replace(/^(\.\/)+|^\/+|\/+$/g, "").replace(/[^\w.\-/]/g, "-") || "dist";
+    return { outDir: dir, externalScripts: extScripts.checked, externalStyles: extStyles.checked };
+  };
+  const showZipName = () => (zipLabel.textContent = `Download ${output().outDir.split("/").pop()}.zip`);
+  // ###################
+  // The settings modal: in the middle of the page over a blurred backdrop; Esc, ✕ or the backdrop closes it
+  // ###################
+  let opener = null;
+  const openSettings = (open) => {
+    panel.dataset.open = String(open);
+    backdrop.dataset.open = String(open);
+    if (open) {
+      opener = document.activeElement;
+      panel.querySelector("input")?.focus();
+    } else {
+      opener?.focus?.();
+    }
+  };
+  const closeSettings = () => openSettings(false);
+  const toggleSettings = () => openSettings(panel.dataset.open !== "true");
+  const settingsClick = (e) => {
+    if (e.target.closest("[data-close]")) openSettings(false);
+    else if (e.target.closest("[data-add]")) {
+      const row = aliasRow.content.firstElementChild.cloneNode(true);
+      aliasList.append(row);
+      row.querySelector("input").focus();
+    } else if (e.target.closest("[data-remove]")) {
+      e.target.closest("li").remove();
+      later();
+      saveSoon();
+    }
+  };
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && panel.dataset.open === "true") openSettings(false);
+  });
+
+  // ###################
+  // The result runs in a sandboxed frame (an origin of its own). The compiled script imports the page's
+  // modules from blob: URLs, which that origin can't read, so they're put inside it as data: URLs
+  // (and the blob: URLs they import in turn)
+  // ###################
+  const inline = async (code, seen = new Map()) => {
+    for (const url of new Set(code.match(/blob:[^"'\s)]+/g) ?? [])) {
+      if (!seen.has(url)) {
+        seen.set(url, "");
+        const text = await inline(await (await fetch(url)).text(), seen);
+        seen.set(url, `data:text/javascript;charset=utf-8,${encodeURIComponent(text)}`);
+      }
+      code = code.split(url).join(seen.get(url));
+    }
+    return code;
+  };
+
+  // custom.arcm holds the example component for the showcase that uses it (Getting started); else it's empty
+  const startOf = (id) => (id === "main" ? showcases[current].main : showcases[current].custom ? startCustom : "");
+  const value = (id) => (editors[id] ? editors[id].getValue() : startOf(id));
+  // the example's draft if it has one, else its original code
+  const openingOf = (id) => store.drafts[current]?.[id] ?? startOf(id);
+
+  // ###################
+  // Settings to and from plain data, for saving and for Reset
+  // ###################
+  const settingsData = () => ({
+    aliases: [...aliasList.querySelectorAll("li")].map((row) => [...row.querySelectorAll("input")].map((i) => i.value)),
+    removeComments: comments.checked,
+    timeout: Number(wait.value),
+    outDir: outDir.value,
+    externalScripts: extScripts.checked,
+    externalStyles: extStyles.checked
+  });
+  const applySettings = (data) => {
+    // check the shape first, so a bad save can't leave the settings half changed
+    if (!Array.isArray(data.aliases) || !data.aliases.every((p) => Array.isArray(p) && p.length === 2)) throw new TypeError("bad aliases");
+    aliasList.replaceChildren();
+    for (const [alias, target] of data.aliases) {
+      const row = aliasRow.content.firstElementChild.cloneNode(true);
+      const [a, t] = row.querySelectorAll("input");
+      a.value = alias;
+      t.value = target;
+      aliasList.append(row);
+    }
+    comments.checked = data.removeComments;
+    wait.value = data.timeout;
+    outDir.value = data.outDir;
+    extScripts.checked = data.externalScripts;
+    extStyles.checked = data.externalStyles;
+    showZipName();
+  };
+
+  // ###################
+  // Save shortly after an edit: a draft only while the code differs from the original
+  // ###################
+  let saveTimer = null;
+  const saveNow = () => {
+    if (!editors.main) return;
+    const draft = { main: editors.main.getValue(), custom: editors.custom.getValue() };
+    if (draft.main === startOf("main") && draft.custom === startOf("custom")) delete store.drafts[current];
+    else store.drafts[current] = draft;
+    store.last = current;
+    store.settings = settingsData();
+    writeStore();
+  };
+  const saveSoon = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 500);
+  };
+
+  // ###################
+  // Compile: main.arcm with custom.arcm next to it, and the compiler settings
+  // ###################
+  const compileNow = (warnings = []) =>
+    new Browser({
+      filename: "main.arcm",
+      files: { "main.arcm": value("main"), "custom.arcm": value("custom") },
+      ...settings(),
+      onWarning: (w) => warnings.push(w.message ?? String(w))
+    }).compile();
+
+  // ###################
+  // Build: compile, then show the result
+  // ###################
+  const run = async () => {
+    if (!Browser) return;
+    const mine = ++runs;
+    app.dataset.busy = "true";
+    status("Building…");
+    const started = performance.now();
+    const warnings = [];
+    try {
+      const html = await compileNow(warnings);
+      const page = await inline(html);
+      if (mine !== runs) return;
+      frame.srcdoc = frameStyle + page;
+      problem.dataset.hide = "true";
+      notes.textContent = warnings.join("\n");
+      notes.dataset.hide = String(!warnings.length);
+      status(`Built in ${Math.round(performance.now() - started)} ms${notice}`);
+      notice = "";
+      app.dataset.state = "ok";
+    } catch (err) {
+      if (mine !== runs) return;
+      const at = /(?:^|\/)(main|custom)\.arcm:(\d+):(\d+)/.exec(err.message);
+      problem.querySelector("pre").textContent = err.message.replace(/^\S*?(main|custom)\.arcm:/, "$1.arcm:");
+      problem.dataset.hide = "false";
+      notes.dataset.hide = "true";
+      status(at ? `Error in ${at[1]}.arcm, line ${at[2]}` : "Error");
+      app.dataset.state = "error";
+    }
+    app.dataset.busy = "false";
+    app.dataset.loading = "false";
+  };
+  // ###################
+  // dist: the files arcm build would write, made from the compiled page.
+  // externalScripts: the page's script goes to assets/main.js, and the modules it imports (blob: URLs
+  // in the browser) become assets/m0.js…, importing each other by relative path. Otherwise they stay inside.
+  // externalStyles: the CSS goes to assets/main.css
+  // ###################
+  const modules = async (code, found) => {
+    for (const url of new Set(code.match(/blob:[^"'\s)]+/g) ?? [])) {
+      if (!found.has(url)) {
+        const file = { name: `m${found.size}.js`, text: "" };
+        found.set(url, file);
+        file.text = await modules(await (await fetch(url)).text(), found);
+      }
+      code = code.split(url).join(`./${found.get(url).name}`);
+    }
+    return code;
+  };
+  const makeDist = async () => {
+    const out = output();
+    // the script names its file for error messages: main.arcm, not "/main.arcm"
+    let html = (await compileNow()).replace(/(file: ")\//g, "$1");
+    const files = [];
+    if (out.externalScripts) {
+      const found = new Map();
+      const scripts = [...html.matchAll(/<script type="module">([\s\S]*?)<\/script>/g)];
+      for (const [i, m] of scripts.entries()) {
+        const name = scripts.length > 1 ? `main-${i + 1}.js` : "main.js";
+        files.push([`assets/${name}`, await modules(m[1], found)]);
+        html = html.replace(m[0], `<script type="module" src="assets/${name}"></script>`);
+      }
+      for (const { name, text } of found.values()) files.push([`assets/${name}`, text]);
+    } else {
+      html = await inline(html);
+    }
+    if (out.externalStyles) {
+      const styles = [...html.matchAll(/<style>([\s\S]*?)<\/style>/g)];
+      if (styles.length) {
+        files.push(["assets/main.css", styles.map((m) => m[1]).join("\n")]);
+        html = html.replace(styles[0][0], '<link rel="stylesheet" href="assets/main.css">');
+        for (const m of styles.slice(1)) html = html.replace(m[0], "");
+      }
+    }
+    const page = /^\s*<!doctype/i.test(html) ? html : `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>main</title>\n</head>\n<body>\n${html}\n</body>\n</html>\n`;
+    return { dir: out.outDir, files: [["main.html", page], ...files] };
+  };
+
+  // ###################
+  // A .zip of text files, stored (not compressed): local headers, the central directory, its end record
+  // ###################
+  const CRC = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc32 = (bytes) => {
+    let c = 0xffffffff;
+    for (const b of bytes) c = CRC[(c ^ b) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const zip = (entries) => {
+    const enc = new TextEncoder();
+    const now = new Date();
+    const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const day = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const parts = [];
+    const central = [];
+    let offset = 0;
+    for (const [path, text] of entries) {
+      const name = enc.encode(path);
+      const data = enc.encode(text);
+      const crc = crc32(data);
+      const head = new DataView(new ArrayBuffer(30));
+      head.setUint32(0, 0x04034b50, true);
+      head.setUint16(4, 20, true);
+      head.setUint16(6, 0x0800, true);
+      head.setUint16(10, time, true);
+      head.setUint16(12, day, true);
+      head.setUint32(14, crc, true);
+      head.setUint32(18, data.length, true);
+      head.setUint32(22, data.length, true);
+      head.setUint16(26, name.length, true);
+      parts.push(head, name, data);
+      const entry = new DataView(new ArrayBuffer(46));
+      entry.setUint32(0, 0x02014b50, true);
+      entry.setUint16(4, 20, true);
+      entry.setUint16(6, 20, true);
+      entry.setUint16(8, 0x0800, true);
+      entry.setUint16(12, time, true);
+      entry.setUint16(14, day, true);
+      entry.setUint32(16, crc, true);
+      entry.setUint32(20, data.length, true);
+      entry.setUint32(24, data.length, true);
+      entry.setUint16(28, name.length, true);
+      entry.setUint32(42, offset, true);
+      central.push(entry, name);
+      offset += 30 + name.length + data.length;
+    }
+    const size = central.reduce((n, p) => n + p.byteLength, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(8, entries.length, true);
+    end.setUint16(10, entries.length, true);
+    end.setUint32(12, size, true);
+    end.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, end], { type: "application/zip" });
+  };
+
+  // ###################
+  // Download dist.zip: build fresh, so it matches the code and settings; an error shows like a build's
+  // ###################
+  const download = async () => {
+    if (!Browser) return;
+    try {
+      const { dir, files } = await makeDist();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(zip(files.map(([path, text]) => [`${dir}/${path}`, text])));
+      a.download = `${dir.split("/").pop()}.zip`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      status(`Downloaded ${a.download}: ${files.map(([path]) => path).join(", ")}`);
+    } catch {
+      runNow();
+    }
+  };
+  // ###################
+  // Fullscreen: the editor or the output fills the screen (Esc or the button leaves it).
+  // Each button says which pane it's for (data-pane); only that one shows "exit"
+  // ###################
+  const panes = { files: filesPane, output: outPane };
+  const fullButtons = ArcMoon.refs(ArcMoon.defineRef("pg-full"));
+  const toggleFull = (e) => {
+    const pane = panes[e.target.closest("[data-pane]").dataset.pane];
+    if (document.fullscreenElement) document.exitFullscreen();
+    else pane.requestFullscreen?.();
+  };
+  document.addEventListener("fullscreenchange", () => {
+    for (const button of fullButtons) {
+      const on = document.fullscreenElement === panes[button.dataset.pane];
+      button.setAttribute("aria-pressed", String(on));
+      button.setAttribute("aria-label", on ? "Leave full screen" : "Full screen");
+    }
+  });
+
+  const settingsInput = () => {
+    showZipName();
+    later();
+    saveSoon();
+  };
+
+  const later = () => {
+    clearTimeout(timer);
+    timer = setTimeout(run, 700);
+  };
+  const runNow = () => {
+    clearTimeout(timer);
+    run();
+  };
+  // ###################
+  // Reset: this example's original code and the starting settings; its draft is cleared
+  // ###################
+  const reset = () => {
+    delete store.drafts[current];
+    openFile("main");
+    for (const id of ["main", "custom"]) editors[id]?.setValue(startOf(id));
+    applySettings(startSettings);
+    saveNow();
+    runNow();
+  };
+  // ###################
+  // Showcases: picking one puts its own main.arcm in the editor (replacing the code there), and
+  // custom.arcm only if it uses it (else custom.arcm is emptied), then builds; the address keeps it
+  // (#example=…). Edits are saved; a reload brings back the last example with them
+  // ###################
+  const load = (slug) => {
+    if (!showcases[slug]) return;
+    current = slug;
+    picker.value = slug;
+    history.replaceState(null, "", `#example=${slug}`);
+    // picking a showcase always shows its own source: any draft of it is dropped
+    delete store.drafts[slug];
+    editors.main?.setValue(startOf("main"));
+    editors.custom?.setValue(startOf("custom"));
+    openFile("main");
+    store.last = slug;
+    writeStore();
+    runNow();
+  };
+  const pickExample = (e) => load(e.target.value);
+
+  window.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      runNow();
+    }
+  });
+
+  // the saved settings, if any; a broken save falls back to the starting settings
+  if (store.settings) {
+    try {
+      applySettings(store.settings);
+    } catch {
+      applySettings(startSettings);
+    }
+  }
+
+  // ###################
+  // The editors: ArcMoon's own, for both files
+  // ###################
+  for (const id of ["main", "custom"]) {
+    boxes[id].replaceChildren();
+    editors[id] = attachHighlighter(boxes[id], { classPrefix: "arcm-", caretColor: "#e8eaf0", showLineNumbers: true });
+    editors[id].setValue(openingOf(id));
+    editors[id].onUpdate(() => {
+      later();
+      saveSoon();
+    });
+  }
+
+  import(compilerUrl)
+    .then((compiler) => {
+      Browser = compiler.default;
+      app.dataset.ready = "true";
+      // the page opens with Getting started's result; another showcase, or a draft, is built first
+      if (current === firstSlug && !store.drafts[current] && !store.settings) app.dataset.loading = "false";
+      else runNow();
+      const fromAddress = () => {
+        const asked = new URLSearchParams(location.hash.slice(1)).get("example");
+        if (asked && asked !== current && showcases[asked]) load(asked);
+      };
+      fromAddress();
+      addEventListener("hashchange", fromAddress);
+    })
+    .catch(() => {
+      app.dataset.ready = "failed";
+      app.dataset.loading = "false";
+      status("Couldn't load the compiler. Check your connection and reload.");
+    });
+}$
+
+[Site = title: "Playground", description: "Write ArcMoon in your browser: a page and a component, built as you type.", section: "playground"]
+  [div = class: "pg", arcm-ref: "pg", data-tab: "main", data-state: "ok", data-ready: "false", data-loading: "true"]
+    # ###################
+    # The toolbar: the example on the left; settings, reset and run on the right
+    # ###################
+    [div = class: "pg-toolbar"]
+      [span = class: "pg-title"]Playground[end]
+      [label = class: "pg-pick", title: "Examples"]
+        [svg = viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M2.5 3.5h4v4h-4zM9.5 3.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z", fill: "none", stroke: "currentColor", stroke-width: "1.3", stroke-linejoin: "round" !][end]
+        [select = arcm-ref: "pg-example", aria-label: "Example", onchange: runtime ${ pickExample }$]
+          [for-each = ${ choices }$, as: "x"][option = value: ${ x.slug }$, selected: ${ x.selected }$]${ x.title }$[end][end]
+        [end]
+      [end]
+      [button = class: "pg-ghost pg-only-icon", type: "button", onclick: runtime ${ toggleSettings }$, aria-controls: "pg-settings", aria-label: "Settings", title: "Settings"]
+        [svg = viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M8 10.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4Z", fill: "none", stroke: "currentColor", stroke-width: "1.4" !][path = d: "M13.3 9.6 14.5 8l-1.2-1.6.3-2-1.9-.8-.8-1.9-2 .3L8 1.5 6.4 2.7l-2-.3-.8 1.9-1.9.8.3 2L.8 8 2 9.6l-.3 2 1.9.8.8 1.9 2-.3L8 14.5l1.6-1.2 2 .3.8-1.9 1.9-.8Z", fill: "none", stroke: "currentColor", stroke-width: "1.2", stroke-linejoin: "round" !][end]
+      [end]
+      [button = class: "pg-ghost", type: "button", onclick: runtime ${ reset }$, title: "Back to this example\'s original code and the starting settings"]Reset[end]
+      [button = class: "pg-run", type: "button", onclick: runtime ${ runNow }$, title: "Run (Ctrl+Enter)"]
+        [svg = viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M4.5 3v10l8-5Z", fill: "currentColor" !][end]
+        Run
+      [end]
+    [end]
+    [section = class: "pg-side pg-files", arcm-ref: "pg-files", aria-label: "Files"]
+      [div = class: "pg-bar"]
+        [div = class: "pg-tabs", role: "tablist", aria-label: "Files", onclick: runtime ${ fileTab }$, onkeydown: runtime ${ fileKeys }$]
+          [for-each = ${ tabs }$, as: "t"]
+            [button = class: "pg-tab", type: "button", role: "tab", arcm-shared-ref: "pg-tab", data-file: ${ t.id }$, aria-selected: ${ t.selected }$, tabindex: ${ t.tabindex }$][span = class: "pg-icon", aria-hidden: "true"]${ t.icon }$[end]${ t.name }$[end]
+          [end]
+        [end]
+        [button = class: "pg-full", type: "button", arcm-shared-ref: "pg-full", data-pane: "files", aria-pressed: "false", onclick: runtime ${ toggleFull }$, aria-label: "Full screen", title: "Full screen"]
+          [svg = class: "pg-enter", viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10", fill: "none", stroke: "currentColor", stroke-width: "1.6", stroke-linecap: "round", stroke-linejoin: "round" !][end]
+          [svg = class: "pg-exit", viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5", fill: "none", stroke: "currentColor", stroke-width: "1.6", stroke-linecap: "round", stroke-linejoin: "round" !][end]
+        [end]
+      [end]
+      # ###################
+      # Settings: a modal in the middle of the page, over a blurred backdrop
+      # ###################
+      [div = class: "pg-backdrop", arcm-ref: "pg-backdrop", data-open: "false", onclick: runtime ${ closeSettings }$][end]
+      [div = class: "pg-settings", id: "pg-settings", arcm-ref: "pg-settings", data-open: "false", role: "dialog", aria-modal: "true", aria-label: "Settings", onclick: runtime ${ settingsClick }$, oninput: runtime ${ settingsInput }$]
+        [div = class: "pg-set-head"]
+          [h2]Settings[end]
+          [button = class: "pg-close", type: "button", data-close: "true", aria-label: "Close settings"]✕[end]
+        [end]
+        [p = class: "pg-set-hint"]The same options as in arcmoon.config.js: how ArcMoon compiles the files, and how [strong]Download[end] writes them.[end]
+        [p = class: "pg-set-group"]Compiler[end]
+
+        [div = class: "pg-field"]
+          [p = class: "pg-label"]Import aliases[end]
+          [p = class: "pg-help"][code]\[import\][end] paths that start with an alias are read from its folder.[end]
+          [ul = class: "pg-aliases", arcm-ref: "pg-aliases"]
+            [for-each = ${ startSettings.aliases }$, as: "a"]
+              [li][input = aria-label: "Alias", value: ${ a[0] }$, spellcheck: "false" !][span = aria-hidden: "true"]→[end][input = aria-label: "Folder", value: ${ a[1] }$, spellcheck: "false" !][button = class: "pg-remove", type: "button", data-remove: "true", aria-label: "Remove this alias"]✕[end][end]
+            [end]
+          [end]
+          [template = arcm-ref: "pg-alias-row"][li][input = aria-label: "Alias", placeholder: "~", spellcheck: "false" !][span = aria-hidden: "true"]→[end][input = aria-label: "Folder", placeholder: "./", spellcheck: "false" !][button = class: "pg-remove", type: "button", data-remove: "true", aria-label: "Remove this alias"]✕[end][end][end]
+          [button = class: "pg-add", type: "button", data-add: "true"]+ Add alias[end]
+        [end]
+
+        [label = class: "pg-field pg-switch"]
+          [span][span = class: "pg-label"]Remove comments[end][span = class: "pg-help"]Leave [code]\#[end] comments out of the HTML.[end][end]
+          [input = type: "checkbox", arcm-ref: "pg-comments", checked: ${ startSettings.removeComments }$ !]
+        [end]
+
+        [label = class: "pg-field"]
+          [span = class: "pg-label"]Timeout (ms)[end]
+          [span = class: "pg-help"]How long each file's [code]\${ }$[end] code may run before it's stopped (up to 20000).[end]
+          [input = class: "pg-number", type: "number", min: "100", max: "20000", step: "100", arcm-ref: "pg-timeout", value: ${ startSettings.timeout }$ !]
+        [end]
+
+        [p = class: "pg-set-group"]Output[end]
+        [label = class: "pg-field"]
+          [span = class: "pg-label"]Output folder (outDir)[end]
+          [span = class: "pg-help"]The folder inside the zip, and the zip's name.[end]
+          [input = class: "pg-text", arcm-ref: "pg-outdir", value: ${ startSettings.outDir }$, spellcheck: "false" !]
+        [end]
+        [label = class: "pg-field pg-switch"]
+          [span][span = class: "pg-label"]External scripts[end][span = class: "pg-help"]JavaScript in files (assets/main.js) instead of inside the page.[end][end]
+          [input = type: "checkbox", arcm-ref: "pg-ext-scripts", checked: ${ startSettings.externalScripts }$ !]
+        [end]
+        [label = class: "pg-field pg-switch"]
+          [span][span = class: "pg-label"]External styles[end][span = class: "pg-help"]CSS in a file (assets/main.css) instead of inside the page.[end][end]
+          [input = type: "checkbox", arcm-ref: "pg-ext-styles", checked: ${ startSettings.externalStyles }$ !]
+        [end]
+      [end]
+
+      [div = class: "pg-panels"]
+        [for-each = ${ tabs }$, as: "t"]
+          [div = class: "pg-panel", data-panel: ${ t.id }$]
+            [div = class: "pg-editor", arcm-shared-ref: "pg-editor", data-file: ${ t.id }$][pre = class: "pg-static"][code]${ t.code }$[end][end][end]
+          [end]
+        [end]
+      [end]
+    [end]
+
+    [section = class: "pg-side pg-output", arcm-ref: "pg-output", aria-label: "Output"]
+      [div = class: "pg-bar"]
+        [span = class: "pg-out-title"]Result[end]
+        [p = class: "pg-status", aria-live: "polite"][span = class: "pg-light", aria-hidden: "true"][end]runtime ${ status() }$[end]
+        [button = class: "pg-download", type: "button", onclick: runtime ${ download }$, title: "main.html with its JS and CSS, as arcm build writes them"]
+          [svg = viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M8 2.5v8m0 0L4.8 7.3M8 10.5l3.2-3.2M3 13.5h10", fill: "none", stroke: "currentColor", stroke-width: "1.6", stroke-linecap: "round", stroke-linejoin: "round" !][end]
+          [span = arcm-ref: "pg-zip-label"]Download ${ startSettings.outDir }$.zip[end]
+        [end]
+        [button = class: "pg-full", type: "button", arcm-shared-ref: "pg-full", data-pane: "output", aria-pressed: "false", onclick: runtime ${ toggleFull }$, aria-label: "Full screen", title: "Full screen"]
+          [svg = class: "pg-enter", viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10", fill: "none", stroke: "currentColor", stroke-width: "1.6", stroke-linecap: "round", stroke-linejoin: "round" !][end]
+          [svg = class: "pg-exit", viewBox: "0 0 16 16", aria-hidden: "true"][path = d: "M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5", fill: "none", stroke: "currentColor", stroke-width: "1.6", stroke-linecap: "round", stroke-linejoin: "round" !][end]
+        [end]
+      [end]
+      [div = class: "pg-out"]
+        # sandboxed: the result's own scripts and forms work, but in an origin of its own, away from this page
+        [iframe = class: "pg-frame", arcm-ref: "pg-frame", title: "Result", sandbox: "allow-scripts allow-forms", srcdoc: ${ firstPage }$ !]
+        [div = class: "pg-error", arcm-ref: "pg-error", data-hide: "true"][strong]This didn't build[end][pre][end][end]
+        [pre = class: "pg-notes", arcm-ref: "pg-notes", data-hide: "true"][end]
+      [end]
+    [end]
+  [end]
+[end:Site]
+
+[style]
+  /* ###################
+     The app: the space under the header, two panes; always dark, with the site's dark token colors
+     ################### */
+  .pg {
+    --pg-bg: #0f0f12;
+    --pg-head: #0b0b0d;
+    --pg-line: #232328;
+    --pg-ink: #e8eaf0;
+    --pg-muted: #8b8b96;
+    --arcm-punct: #7b7b88;
+    --arcm-tag: #ff7a8c;
+    --arcm-key: #7cc4ff;
+    --arcm-string: #8fdba8;
+    --arcm-number: #f5b971;
+    --arcm-keyword: #c4a3ff;
+    --arcm-logic: #67d4e8;
+    --arcm-comment: #6e6e78;
+    --arcm-text: #e4e4e8;
+    --arcm-call: #f0d38a;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    height: calc(100vh - 61px - 48px);
+    min-height: 520px;
+    padding: 12px;
+    background: var(--sunken);
+  }
+  .pg-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .pg-files {
+    color: var(--pg-ink);
+    background: var(--pg-bg);
+    border-color: var(--pg-line);
+    color-scheme: dark;
+  }
+  .pg-output {
+    background: var(--bg);
+  }
+  .pg-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 0 8px 0 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .pg-files .pg-bar {
+    background: var(--pg-head);
+    border-color: var(--pg-line);
+  }
+  .pg-tabs {
+    display: flex;
+    align-self: stretch;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .pg-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 14px;
+    font: 500 13px/1 var(--mono);
+    white-space: nowrap;
+    color: var(--muted);
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .pg-files .pg-tab {
+    color: var(--pg-muted);
+  }
+  .pg-tab:hover {
+    color: var(--ink);
+  }
+  .pg-files .pg-tab:hover {
+    color: var(--pg-ink);
+  }
+  .pg-icon :global(svg) {
+    display: block;
+    width: 15px;
+    height: 15px;
+  }
+  .pg-tab[aria-selected="false"] .pg-icon {
+    opacity: 0.7;
+  }
+  .pg[data-tab="main"] .pg-tab[data-file="main"],
+  .pg[data-tab="custom"] .pg-tab[data-file="custom"] {
+    color: var(--pg-ink);
+    border-bottom-color: #ff5c72;
+  }
+  /* ###################
+     The toolbar, across both panes
+     ################### */
+  .pg-toolbar {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 8px 16px;
+    color: var(--pg-ink);
+    background: var(--pg-head);
+    border: 1px solid var(--pg-line);
+    border-radius: 14px;
+    color-scheme: dark;
+  }
+  .pg-title {
+    margin-right: 6px;
+    font: 600 14px/1 var(--sans);
+  }
+  .pg-toolbar .pg-pick {
+    margin-right: auto;
+  }
+  .pg-actions {
+    display: contents;
+  }
+  /* ###################
+     The showcase picker
+     ################### */
+  .pg-pick {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 4px;
+    padding-left: 10px;
+    border: 1px solid var(--pg-line);
+    border-radius: 8px;
+  }
+  .pg-pick svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+    color: var(--pg-muted);
+  }
+  .pg-only-icon {
+    padding: 6px 8px;
+  }
+  .pg-pick select {
+    max-width: 150px;
+    padding: 6px 8px;
+    font: 500 13px/1.2 var(--sans);
+    color: var(--pg-ink);
+    background: transparent;
+    border: 0;
+    border-left: 1px solid var(--pg-line);
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+  }
+  .pg-pick select option {
+    color: #18181b;
+  }
+  .pg-ghost,
+  .pg-run {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font: 500 13px/1 var(--sans);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .pg-ghost {
+    color: var(--pg-muted);
+    background: transparent;
+    border: 1px solid var(--pg-line);
+  }
+  .pg-ghost:hover {
+    color: var(--pg-ink);
+  }
+  .pg-run {
+    color: #16070a;
+    background: #ff5c72;
+    border: 1px solid #ff5c72;
+  }
+  .pg-run svg {
+    width: 12px;
+    height: 12px;
+  }
+  .pg[data-ready="false"] .pg-run {
+    opacity: 0.5;
+    cursor: progress;
+  }
+
+  /* ###################
+     Files: one panel shows; before the editors load, each shows its highlighted code
+     ################### */
+  .pg-panels {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+  .pg-panel {
+    position: absolute;
+    inset: 0;
+    display: none;
+    overflow: auto;
+  }
+  .pg[data-tab="main"] [data-panel="main"],
+  .pg[data-tab="custom"] [data-panel="custom"] {
+    display: block;
+  }
+  .pg-editor {
+    min-height: 100%;
+    font: 13.5px/1.6 var(--mono);
+  }
+  .pg-static {
+    margin: 0;
+    padding: 12px 16px 12px 52px;
+    font: inherit;
+    white-space: pre-wrap;
+    color: var(--arcm-text);
+    background: none;
+  }
+  .pg-editor :global(.cm-editor) {
+    height: 100%;
+    min-height: 100%;
+    font: inherit;
+    color: var(--pg-ink);
+    background: transparent;
+  }
+  .pg-editor :global(.cm-gutters) {
+    color: #4d4d57;
+    background: transparent;
+    border: 0;
+  }
+  .pg-editor :global(.cm-activeLine),
+  .pg-editor :global(.cm-activeLineGutter) {
+    background: rgb(255 255 255 / 0.03);
+  }
+  .pg-editor :global(.cm-cursor) {
+    border-left-color: var(--pg-ink);
+  }
+  .pg-editor :global(.cm-selectionBackground),
+  .pg-editor :global(.cm-focused .cm-selectionBackground) {
+    background: rgb(255 92 114 / 0.22) !important;
+  }
+  .pg-editor :global(.cm-focused) {
+    outline: none;
+  }
+  /* ###################
+     Settings: a modal in the middle of the page, over a blurred backdrop
+     ################### */
+  .pg-ghost svg {
+    width: 14px;
+    height: 14px;
+  }
+  .pg-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    background: rgb(8 8 10 / 0.45);
+    backdrop-filter: blur(8px);
+  }
+  .pg-backdrop[data-open="true"] {
+    display: block;
+    animation: pg-fade 0.2s ease-out;
+  }
+  .pg-settings {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 51;
+    display: none;
+    width: min(460px, calc(100vw - 32px));
+    max-height: calc(100vh - 64px);
+    padding: 22px 24px;
+    overflow: auto;
+    color: var(--pg-ink);
+    background: #141418;
+    border: 1px solid var(--pg-line);
+    border-radius: 18px;
+    box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 92 114 / 0.08);
+    transform: translate(-50%, -50%);
+    color-scheme: dark;
+  }
+  .pg-settings[data-open="true"] {
+    display: block;
+    animation: pg-in 0.2s ease-out;
+  }
+  .pg-set-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pg-set-head h2 {
+    margin: 0;
+    font: 600 16px/1.3 var(--sans);
+  }
+  .pg-close,
+  .pg-remove {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    color: var(--pg-muted);
+    background: none;
+    border: 1px solid var(--pg-line);
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .pg-close:hover,
+  .pg-remove:hover {
+    color: var(--pg-ink);
+  }
+  .pg-set-hint {
+    margin: 8px 0 18px;
+    font-size: 13px;
+    color: var(--pg-muted);
+  }
+  .pg-settings code {
+    padding: 0 4px;
+    font-size: 0.9em;
+    color: var(--arcm-tag);
+    background: rgb(255 255 255 / 0.06);
+    border-radius: 4px;
+  }
+  .pg-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 0;
+    border-top: 1px solid var(--pg-line);
+  }
+  .pg-label {
+    margin: 0;
+    font: 600 14px/1.3 var(--sans);
+  }
+  .pg-help {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--pg-muted);
+  }
+  .pg-settings input:not([type="checkbox"]) {
+    min-width: 0;
+    padding: 7px 10px;
+    font: 13px/1.3 var(--mono);
+    color: var(--pg-ink);
+    background: var(--pg-bg);
+    border: 1px solid var(--pg-line);
+    border-radius: 7px;
+  }
+  .pg-settings input:focus-visible {
+    outline: 2px solid #ff5c72;
+    outline-offset: 1px;
+  }
+  .pg-aliases {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .pg-aliases li {
+    display: grid;
+    grid-template-columns: 70px auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+    color: var(--pg-muted);
+  }
+  .pg-add {
+    align-self: flex-start;
+    margin-top: 8px;
+    padding: 5px 10px;
+    font: 500 12.5px/1 var(--sans);
+    color: #ff7a8c;
+    background: none;
+    border: 1px dashed var(--pg-line);
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .pg-switch {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+  }
+  .pg-switch > span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .pg-switch input {
+    flex: none;
+    width: 38px;
+    height: 22px;
+    margin: 0;
+    appearance: none;
+    background: var(--pg-line);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .pg-switch input::before {
+    content: "";
+    display: block;
+    width: 16px;
+    height: 16px;
+    margin: 3px;
+    background: var(--pg-ink);
+    border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+  .pg-switch input:checked {
+    background: #ff5c72;
+  }
+  .pg-switch input:checked::before {
+    transform: translateX(16px);
+  }
+  .pg-number {
+    width: 140px;
+    margin-top: 6px;
+  }
+  .pg-text {
+    margin-top: 6px;
+  }
+  .pg-set-group {
+    margin: 18px 0 0;
+    font: 500 11px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ff7a8c;
+  }
+  .pg-set-group + .pg-field {
+    border-top: 0;
+  }
+  @keyframes pg-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -46%) scale(0.97);
+    }
+  }
+  @keyframes pg-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* ###################
+     Output: Result or HTML, with the status light; an error covers both
+     ################### */
+  .pg-out-title {
+    padding: 0 12px;
+    font: 600 13px/1 var(--sans);
+  }
+  .pg-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    padding: 6px 12px;
+    font: 500 13px/1 var(--sans);
+    color: var(--on-accent);
+    background: var(--accent);
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .pg-download:hover {
+    background: var(--accent-ink);
+  }
+  .pg-download svg {
+    width: 14px;
+    height: 14px;
+  }
+  .pg-full {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .pg-full:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+  .pg-full svg {
+    width: 15px;
+    height: 15px;
+  }
+  .pg-files .pg-full {
+    margin-left: auto;
+    color: var(--pg-muted);
+    border-color: var(--pg-line);
+  }
+  .pg-files .pg-full:hover {
+    color: var(--pg-ink);
+  }
+  .pg-exit,
+  .pg-full[aria-pressed="true"] .pg-enter {
+    display: none;
+  }
+  .pg-full[aria-pressed="true"] .pg-exit {
+    display: block;
+  }
+  .pg-output:fullscreen,
+  .pg-files:fullscreen {
+    border: 0;
+    border-radius: 0;
+  }
+  .pg[data-ready="false"] .pg-download {
+    opacity: 0.5;
+    cursor: progress;
+  }
+  .pg-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin: 0 0 0 auto;
+    padding-right: 6px;
+    font: 12px/1.3 var(--mono);
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pg-light {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    background: var(--emerald);
+    border-radius: 50%;
+  }
+  .pg[data-state="error"] .pg-light {
+    background: var(--accent);
+  }
+  .pg[data-busy="true"] .pg-light {
+    background: var(--pick-4);
+    animation: pg-pulse 0.8s ease-in-out infinite alternate;
+  }
+  .pg-out {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+  }
+  .pg-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: 0;
+  }
+  .pg-frame {
+    background: #fff;
+  }
+  .pg-error {
+    position: absolute;
+    inset: 0;
+    padding: 18px 20px;
+    overflow: auto;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg));
+  }
+  .pg-error strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--accent-ink);
+  }
+  .pg-error pre {
+    margin: 0;
+    font: 13px/1.6 var(--mono);
+    white-space: pre-wrap;
+    color: var(--ink);
+  }
+  .pg-notes {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    margin: 0;
+    padding: 8px 12px;
+    font: 12px/1.5 var(--mono);
+    white-space: pre-wrap;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .pg [data-hide="true"] {
+    display: none;
+  }
+  /* ###################
+     Loading: until the editors open and the asked showcase is built, both panes say so
+     ################### */
+  .pg[data-loading="true"] .pg-panel,
+  .pg[data-loading="true"] .pg-out > * {
+    visibility: hidden;
+  }
+  .pg[data-loading="true"] .pg-panels::after,
+  .pg[data-loading="true"] .pg-out::after {
+    content: "Loading…";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font: 13px/1 var(--mono);
+    color: var(--faint);
+    animation: pg-pulse 0.8s ease-in-out infinite alternate;
+  }
+  @keyframes pg-pulse {
+    to {
+      opacity: 0.35;
+    }
+  }
+
+  /* ###################
+     Phones and small tablets: files above, output below
+     ################### */
+  @media (max-width: 860px) {
+    .pg {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(360px, 55vh) minmax(320px, 45vh);
+      height: auto;
+      padding: 8px;
+    }
+  }
+[end]

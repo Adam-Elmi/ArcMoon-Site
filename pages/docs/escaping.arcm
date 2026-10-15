@@ -1,0 +1,73 @@
+# ###################
+# Docs: Escaping
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "escaping"]
+  [Title = id: "why"]Why escape[end:Title]
+  [Text]A few characters mean something to ArcMoon: [hl = text: "[name" !] opens a block, [hl = text: "#" !] starts a comment, [hl = text: "${" !] starts code. To write them as plain text, put a backslash [hl = text: "\\" !] in front. Try it: remove a backslash and press Run:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    [p]Write \[p] for a paragraph.[end]
+    [p]Issue \#42 is fixed.[end]
+    [p]Write \${ code }$ to show it.[end]
+  ' !]
+
+  [Title = id: "text"]In text[end:Title]
+  [Text]Escape these when you mean the characters themselves:[end:Text]
+  [List]
+    [Item][hl = text: "\\[" !] before a name: [hl = text: "\\[p]" !] writes [hl = text: "[p]" !] instead of opening a paragraph.[end:Item]
+    [Item][hl = text: "\\#" !]: a [hl = text: "#" !] instead of a comment.[end:Item]
+    [Item][hl = text: "\\${" !]: shows [hl = text: "${ … }$" !] instead of running it.[end:Item]
+    [Item][hl = text: "\\\\" !]: a backslash itself.[end:Item]
+  [end:List]
+  [Code = title: "index.arcm", output: true, file: "src/samples/escaping/text.arcm" !]
+
+  [Title = id: "no-escape"]What needs no escape[end:Title]
+  [Text]Everything else is plain text, including [hl = text: ":" !], [hl = text: "," !], [hl = text: "=" !], a lone [hl = text: "]" !], [hl = text: "[" !] followed by a space, and [hl = text: "$" !]:[end:Text]
+  [Code = title: "index.arcm", output: true, file: "src/samples/escaping/plain.arcm" !]
+  [Text][hl = text: "<" !] and [hl = text: "&" !] are escaped into the HTML for you, so text can never turn into tags. To write HTML, use blocks, or [hl = text: "{ raw }" !] from [Link = text: "build-time code", href: "build-time.html" !].[end:Text]
+
+  [Title = id: "backslash"]The backslash itself[end:Title]
+  [Text]In text, a backslash makes the next character plain, whatever it is, and disappears. So a real backslash needs two:[end:Text]
+  [Code = title: "index.arcm", output: true, file: "src/samples/escaping/backslash.arcm" !]
+  [Text]Watch for this with Windows paths and regular expressions in text.[end:Text]
+
+  [Title = id: "quotes"]In quoted values[end:Title]
+  [Text]Inside [hl = text: "\"…\"" !] or [hl = text: '\'…\'' !], only the quote you used needs a backslash. Other backslashes stay as written, and [hl = text: "[" !], [hl = text: "#" !], [hl = text: ":" !] and the rest are plain:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/escaping/quotes.arcm" !]
+  [Text]Use the other kind of quote to avoid backslashes: [hl = text: 'title: \'Say "hi"\'' !].[end:Text]
+
+  [Title = id: "runtime-word"]The word runtime[end:Title]
+  [Text][hl = text: "runtime" !] right before [hl = text: "${" !] makes a live value. To write the word and then a build-time value, escape the word. Anywhere else it needs nothing:[end:Text]
+  [Code = title: "index.arcm", output: true, file: "src/samples/escaping/runtime-word.arcm" !]
+
+  [Title = id: "raw"]Lots of code: arcm-raw[end:Title]
+  [Text]To show a block of ArcMoon code, escaping every bracket gets tiring. [hl = text: "arcm-raw: true" !] writes the body as it is: blocks and comments are not read. The body ends at the first [hl = text: "[end]" !], so write each [hl = text: "[end]" !] inside as [hl = text: "\\[end]" !]:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/escaping/raw.arcm" !]
+
+  [Title = id: "code"]In code and CSS[end:Title]
+  [Text]Inside [hl = text: "${ }$" !], [hl = text: "runtime ${ }$" !] and [hl = text: "[style]" !], ArcMoon\'s escaping doesn\'t apply. JavaScript and CSS use their own rules:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/escaping/code.arcm" !]
+  [Text][hl = text: "\"C:\\\\Users\"" !] is a JavaScript string, and [hl = text: "\"\\201C\"" !] is a CSS escape for “.[end:Text]
+
+  [Title = id: "mistakes"]Mistakes[end:Title]
+  [Text]A missed escape usually shows up as a block that never closes:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ [p] opened at 1:1 is missing [end]. The "#" on line 1 starts a comment, which hides the rest of that line, including its [end]. For the character itself, write \#
+    ✗ [p] opened at 1:1 is missing [end]
+    ✗ [for-each] needs an array first: [for-each = ${ items }$, as: "item"]
+  ' !]
+  [List]
+    [Item][strong]The first:[end] [hl = text: "[p]Issue #42 is fixed[end]" !]: the [hl = text: "#" !] hid the [hl = text: "[end]" !]. Write [hl = text: "\\#42" !].[end:Item]
+    [Item][strong]The second:[end] [hl = text: "[p]Write [b] for bold.[end]" !]: [hl = text: "[b]" !] opened a bold block, and the one [hl = text: "[end]" !] closed it, leaving [hl = text: "[p]" !] open. Write [hl = text: "\\[b]" !].[end:Item]
+    [Item][strong]The third:[end] [hl = text: "[p]Use [for-each] to repeat.[end]" !]: [hl = text: "[for-each]" !] was read as the real block. Write [hl = text: "\\[for-each]" !].[end:Item]
+  [end:List]
+[end:Docs]

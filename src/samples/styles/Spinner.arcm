@@ -1,0 +1,8 @@
+[div = class: "spinner"][end]
+[p]Loading[end]
+[style]
+  :global(.dark) p { color: white; }
+  .spinner { animation: spin 1s linear infinite; }
+  @keyframes spin { to { rotate: 1turn; } }
+  @media (max-width: 600px) { p { font-size: 14px; } }
+[end]

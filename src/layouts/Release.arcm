@@ -1,0 +1,172 @@
+# ###################
+# A release's page (pages/versions/<version>.arcm): [Release = version, date, summary] [Change …] … [end:Release]
+# placeholder: true marks a stand-in release (shows a note saying so)
+# Shows a sticky bar of every version (click one to open it), counts, a link to compare with the version before,
+# the changes, and the versions around it
+# ###################
+[import = Site: "./Site.arcm" !]
+[import = Note: "../components/docs/Note.arcm" !]
+[import = VersionBar: "../components/release/VersionBar.arcm" !]
+
+${
+  import { loadReleases, KINDS } from "../lib/releases.js";
+
+  const { version, date = "", summary = "", placeholder = false } = ArcMoon.props();
+  const all = loadReleases();
+  const at = all.findIndex((r) => r.version === version);
+  const release = all[at];
+  const before = at > 0 ? [all[at - 1]] : [];
+  const after = at < all.length - 1 ? [all[at + 1]] : [];
+  const latest = at === all.length - 1 ? ["latest"] : [];
+  const counts = KINDS.map((k) => ({ ...k, n: release.changes.filter((c) => c.kind === k.id).length })).filter((k) => k.n);
+  const compare = before.map((b) => ({ href: `../versions.html#a=${b.version}&b=${version}`, from: b.version }));
+}$
+
+[Site = title: ${ `ArcMoon ${version}` }$, description: ${ summary }$, root: "../", section: "versions"]
+  [VersionBar = current: ${ version }$, base: "" !]
+  [div = class: "wrap release"]
+    [a = class: "back", href: "../versions.html"]← All versions[end]
+    [header = class: "top"]
+      [h1]ArcMoon [span]${ version }$[end][end]
+      [for-each = ${ latest }$, as: "l"][span = class: "tag latest"]${ l }$[end][end]
+    [end]
+    [p = class: "meta"]Released ${ date }$[end]
+    [p = class: "summary"]${ summary }$[end]
+    [ul = class: "counts"]
+      [for-each = ${ counts }$, as: "c"][li = data-kind: ${ c.id }$][strong]${ c.n }$[end] ${ c.n === 1 ? c.one : c.label.toLowerCase() }$[end][end]
+    [end]
+    [for-each = ${ compare }$, as: "c"][a = class: "compare", href: ${ c.href }$]Compare with ${ c.from }$ →[end][end]
+
+    [for-each = ${ placeholder ? [1] : [] }$]
+      [Note]
+        [p]A placeholder release: it stands in so the version pages have something to compare with, and isn\'t a real ArcMoon version.[end]
+      [end:Note]
+    [end]
+
+    [article = class: "prose changes"][slot!][end]
+
+    [nav = class: "around", aria-label: "Other versions"]
+      [for-each = ${ before }$, as: "b"][a = class: "older", href: ${ b.page }$][span]Older[end][strong]${ b.version }$[end][end][end]
+      [for-each = ${ after }$, as: "n"][a = class: "newer", href: ${ n.page }$][span]Newer[end][strong]${ n.version }$[end][end][end]
+    [end]
+  [end]
+[end:Site]
+
+[style]
+  .release {
+    max-width: 820px;
+    padding-top: clamp(28px, 5vw, 48px);
+    padding-bottom: 96px;
+  }
+  .back {
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .back:hover {
+    color: var(--accent-ink);
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin-top: 20px;
+  }
+  h1 {
+    margin: 0;
+    font: 400 clamp(34px, 5vw, 46px)/1.1 var(--serif);
+    letter-spacing: -0.02em;
+  }
+  h1 span {
+    font-family: var(--mono);
+    font-size: 0.8em;
+    color: var(--accent);
+  }
+  .latest {
+    color: var(--emerald) !important;
+    background: var(--emerald-soft) !important;
+  }
+  .tag {
+    padding: 2px 9px;
+    font: 500 12px/1.5 var(--mono);
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-radius: 999px;
+  }
+  .meta {
+    margin: 8px 0 0;
+    font: 13px/1.4 var(--mono);
+    color: var(--faint);
+  }
+  .summary {
+    margin: 14px 0 0;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+  }
+  .counts li {
+    --k: var(--pick-6);
+    padding: 4px 12px;
+    color: var(--k);
+    background: color-mix(in srgb, var(--k) 10%, transparent);
+    border-radius: 999px;
+  }
+  .counts li[data-kind="breaking"] { --k: var(--pick-1); }
+  .counts li[data-kind="feature"] { --k: var(--pick-5); }
+  .counts li[data-kind="improvement"] { --k: var(--pick-2); }
+  .counts li[data-kind="fix"] { --k: var(--pick-3); }
+  .compare {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent-ink);
+    text-decoration: none;
+  }
+  .compare:hover {
+    text-decoration: underline;
+  }
+  .changes {
+    margin-top: 28px;
+  }
+  .around {
+    display: flex;
+    gap: 12px;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .around a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .around a:hover {
+    border-color: var(--accent);
+  }
+  .around span {
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .around strong {
+    font-family: var(--mono);
+  }
+  .newer {
+    margin-left: auto;
+    text-align: right;
+  }
+[end]

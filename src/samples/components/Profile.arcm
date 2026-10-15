@@ -1,0 +1,10 @@
+${
+  const { name, role = "Member", skills = [] } = ArcMoon.props();
+}$
+[article = class: "profile"]
+  [h3]${ name }$[end]
+  [p]${ role }$[end]
+  [ul]
+    [for-each = ${ skills }$, as: "skill"][li]${ skill }$[end][end]
+  [end]
+[end]

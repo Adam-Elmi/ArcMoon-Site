@@ -1,0 +1,2 @@
+[import = Badge: "./Badge.arcm" !]
+[p]ArcMoon [Badge = tone: "1.0" !][end]

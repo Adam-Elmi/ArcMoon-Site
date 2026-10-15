@@ -1,0 +1,3 @@
+[import = Scoped: "./Scoped.arcm" !]
+${ const name = "the page"; }$
+[Scoped][p]Written by ${ name }$.[end][end:Scoped]

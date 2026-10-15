@@ -1,0 +1,2 @@
+${ const { name = "friend" } = ArcMoon.props(); }$
+[p = class: "greeting"]Hello, ${ name }$![end]

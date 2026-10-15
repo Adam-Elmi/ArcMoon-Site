@@ -1,0 +1,10 @@
+${
+  import { name, author } from "./site.json";
+  import { money } from "./format.js";
+  import { readFileSync } from "node:fs";
+
+  const about = readFileSync(new URL("./about.txt", import.meta.url), "utf8").trim();
+}$
+[h1]${ name }$[end]
+[p]${ about }$[end]
+[p]By ${ author }$, from ${ money(5) }$ a month.[end]

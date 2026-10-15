@@ -1,0 +1,9 @@
+# ###################
+# A link: [Link = text: "Syntax", href: "syntax.html" !], selectColor (1 to 6) optional.
+# Links to other sites open in a new tab
+# ###################
+${
+  const { text, href, selectColor = null } = ArcMoon.props();
+  const outside = /^https?:\/\//.test(href);
+}$
+[a = class: ${ selectColor ? `link pick-${selectColor}` : "link" }$, href: ${ href }$, target: ${ outside ? "_blank" : null }$, rel: ${ outside ? "noopener" : null }$]${ text }$[end]

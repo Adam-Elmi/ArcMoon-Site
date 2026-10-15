@@ -1,0 +1,8 @@
+<!doctype html>
+<div id="app"></div>
+<script type="module">
+  import ArcMoon from "https://cdn.jsdelivr.net/npm/arcmoon@1/+esm";
+
+  const am = new ArcMoon({ src: "[p]From the CDN: ${ 6 * 7 }$[end]" });
+  document.getElementById("app").append(await am.render());
+</script>

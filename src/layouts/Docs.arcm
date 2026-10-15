@@ -1,0 +1,265 @@
+# ###################
+# A docs page: sidebar, title, the page, previous / next
+# Props: slug (its entry in src/data/docs.json)
+# ###################
+[import = Site: "./Site.arcm" !]
+[import = Contents: "../components/docs/Contents.arcm" !]
+
+${
+  import { existsSync, readFileSync } from "node:fs";
+  import docs from "../data/docs.json";
+  import { loadReleases } from "../lib/releases.js";
+
+  const { slug } = ArcMoon.props();
+  const all = docs.flatMap((g) => g.pages.map((p) => ({ ...p, group: g.group })));
+  const at = all.findIndex((p) => p.slug === slug);
+  if (at === -1) throw new Error(`"${slug}" is not in src/data/docs.json`);
+  const doc = all[at];
+  const prev = at > 0 ? [all[at - 1]] : [];
+  const next = at < all.length - 1 ? [all[at + 1]] : [];
+
+  // ###################
+  // Contents: every docs page with its sections, the [Title = id: …] headings in its file
+  // (size 2 only; inline blocks like [hl = text: "…" !] keep their text)
+  // ###################
+  const sectionsOf = (page) => {
+    const file = new URL(`../../pages/docs/${page}.arcm`, import.meta.url);
+    if (!existsSync(file)) return [];
+    const source = readFileSync(file, "utf8");
+    return [...source.matchAll(/\[Title\s*=([^\]]*)\]([\s\S]*?)\[end:Title\]/g)]
+      .map(([, props, text]) => ({ id: props.match(/id:\s*"([^"]+)"/)?.[1], size: Number(props.match(/size:\s*(\d)/)?.[1] ?? 2), text }))
+      .filter((h) => h.id && h.size === 2)
+      .map((h) => ({
+        // escaped \[ stays text: set it aside, drop the blocks, then unescape \[ \] \# …
+        title: h.text
+          .replace(/\\\[/g, "\u0000")
+          .replace(/\[[^\]]*?text:\s*"([^"]*)"[^\]]*\]/g, "$1")
+          .replace(/\[[^\]]*\]/g, "")
+          .replace(/\u0000/g, "[")
+          .replace(/\\([\]#:,=])/g, "$1")
+          .trim(),
+        href: `${page}.html#${h.id}`
+      }));
+  };
+  const newest = loadReleases().at(-1);
+  const contents = docs.map((g) => ({
+    label: g.group,
+    items: g.pages.map((p) => ({ title: p.title, href: `${p.slug}.html`, text: p.summary, current: p.slug === slug, sections: sectionsOf(p.slug) }))
+  }));
+}$
+
+[Site = title: ${ doc.title }$, description: ${ doc.summary }$, root: "../", section: "docs"]
+  [div = class: "wrap docs"]
+    [nav = class: "side", aria-label: "Docs"]
+      [a = class: "whats-new", href: "../versions.html"]
+        [span = class: "whats-new-label"]What's new[end]
+        [strong]ArcMoon ${ newest.version }$[end]
+        [span = class: "whats-new-go"]Compare versions →[end]
+      [end]
+      [Contents = groups: ${ contents }$ !]
+      [div = class: "side-list"]
+        [for-each = ${ docs }$, as: "group"]
+          [p = class: "group"]${ group.group }$[end]
+          [ul]
+            [for-each = ${ group.pages }$, as: "item"]
+              [li][a = href: ${ `${item.slug}.html` }$, aria-current: ${ item.slug === slug ? "page" : null }$]${ item.title }$[end][end]
+            [end]
+          [end]
+        [end]
+      [end]
+    [end]
+    [article = class: "prose"]
+      [p = class: "eyebrow"]${ doc.group }$[end]
+      [h1]${ doc.title }$[end]
+      [p = class: "lead"]${ doc.summary }$[end]
+      [slot!]
+      [nav = class: "pager", aria-label: "Previous and next"]
+        [for-each = ${ prev }$, as: "p"]
+          [a = class: "prev", href: ${ `${p.slug}.html` }$][span]Previous[end][strong]${ p.title }$[end][end]
+        [end]
+        [for-each = ${ next }$, as: "n"]
+          [a = class: "next", href: ${ `${n.slug}.html` }$][span]Next[end][strong]${ n.title }$[end][end]
+        [end]
+      [end]
+    [end]
+  [end]
+[end:Site]
+
+[style]
+  .docs {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 56px;
+    padding-top: 40px;
+    padding-bottom: 72px;
+  }
+  /* What's new and the search stay; the page list under them scrolls when it's taller than the window */
+  .side {
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 108px);
+    font-size: 14px;
+  }
+  /* the padding on the left keeps the links' highlight (margin-left: -10px) from being cut off */
+  .side-list {
+    min-height: 0;
+    margin-left: -10px;
+    padding: 0 8px 24px 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+  .side-list .group:first-child {
+    margin-top: 0;
+  }
+  .group {
+    margin: 22px 0 6px;
+    font: 500 11px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .side :global(.contents) {
+    margin-bottom: 22px;
+  }
+  /* ###################
+     What's new: the latest release, above the search
+     ################### */
+  .side .whats-new {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    color: var(--ink);
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--accent-soft), transparent 80%);
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--line));
+    border-radius: 10px;
+    transition: border-color 0.2s ease;
+  }
+  .side .whats-new:hover {
+    border-color: var(--accent);
+  }
+  .whats-new-label {
+    font: 500 10px/1.4 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .whats-new strong {
+    font: 600 15px/1.3 var(--mono);
+  }
+  .whats-new-go {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .side .whats-new:hover .whats-new-go {
+    color: var(--accent-ink);
+  }
+  .side ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .side a {
+    display: block;
+    padding: 5px 10px;
+    margin-left: -10px;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 6px;
+  }
+  .side a:hover {
+    color: var(--ink);
+  }
+  .side a[aria-current="page"] {
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    font-weight: 500;
+  }
+  .prose {
+    max-width: 760px;
+  }
+  .eyebrow {
+    margin: 0;
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    margin: 12px 0 10px;
+    font: 400 clamp(34px, 5vw, 46px)/1.1 var(--serif);
+    letter-spacing: -0.02em;
+  }
+  .lead {
+    margin: 0 0 32px;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .pager {
+    display: flex;
+    gap: 12px;
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+  .pager a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .pager a:hover {
+    border-color: var(--accent);
+  }
+  .pager span {
+    font-size: 12px;
+    color: var(--faint);
+  }
+  .next {
+    text-align: right;
+    margin-left: auto;
+  }
+  /* ###################
+     Phones and small tablets: one column (minmax(0, …) so long code scrolls in its box
+     instead of widening the page), and the sidebar is only the Contents button
+     ################### */
+  @media (max-width: 860px) {
+    .docs {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+      padding-top: 16px;
+    }
+    .side {
+      position: sticky;
+      top: 60px;
+      z-index: 5;
+      max-height: none;
+      margin: 0 calc(-1 * var(--gutter));
+      padding: 10px var(--gutter);
+      background: color-mix(in srgb, var(--bg) 92%, transparent);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
+    }
+    .side-list,
+    .side .whats-new {
+      display: none;
+    }
+    .side :global(.contents) {
+      margin: 0;
+    }
+    .pager {
+      flex-direction: column;
+    }
+  }
+[end]

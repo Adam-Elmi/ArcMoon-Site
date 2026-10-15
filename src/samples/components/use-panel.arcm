@@ -1,0 +1,5 @@
+[import = Panel: "./Panel.arcm" !]
+[Panel = title: "News"]
+  [p]ArcMoon 1.0 is out.[end]
+[end:Panel]
+[Panel = title: "Events" !]

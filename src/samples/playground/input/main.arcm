@@ -1,0 +1,8 @@
+# Type: the input sets a signal, and the text follows it
+runtime ${
+  import { signal } from "arcmoon/reactive";
+  const name = signal("");
+}$
+
+[input = placeholder: "Your name", oninput: runtime ${ (e) => name(e.target.value) }$ !]
+[p]Hello, runtime ${ name() || "stranger" }$.[end:p]

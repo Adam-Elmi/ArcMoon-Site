@@ -1,0 +1,6 @@
+import { staticHighlight } from "arcmoon-highlight";
+
+staticHighlight('[b = id: "x"]Hi ${ count }$[end]', { classPrefix: "arcm-" });
+// <span class="arcm-open-bracket">[</span><span class="arcm-identifier">b</span>
+// <span class="arcm-key">id</span><span class="arcm-colon">:</span> <span class="arcm-string">"x"</span> …
+// <span class="arcm-logic"> <span class="arcm-js-name">count</span> </span> …

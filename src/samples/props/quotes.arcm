@@ -1,0 +1,3 @@
+[p = title: "Say \"hi\""]Double quotes[end]
+[p = title: 'It\'s fine']Single quotes[end]
+[p = title: 'Say "hi"']No backslash needed[end]

@@ -1,0 +1,73 @@
+# ###################
+# Docs: Raw text
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "raw"]
+  [Title = id: "what"]What it does[end:Title]
+  [Text]
+    Normally ArcMoon reads a block\'s body: blocks become elements, [hl = text: "#" !] starts a comment,
+    [hl = text: "${ }$" !] runs. With [hl = text: "arcm-raw: true" !], it reads nothing: the body is written exactly as it is.
+    Try it: remove [hl = text: "arcm-raw: true" !] and press Run:
+  [end:Text]
+  [Playground = title: "index.arcm", text: '
+    [pre = arcm-raw: true]
+    [b]bold?\[end] ${ 1 + 1 }$ # a comment?
+    [end]
+  ' !]
+  [Text]With it, you see the code as written. Without it, [hl = text: "[b]" !] becomes bold, the comment disappears and [hl = text: "${ 1 + 1 }$" !] becomes [hl = text: "2" !].[end:Text]
+
+  [Title = id: "kept"]What stays as written[end:Title]
+  [List]
+    [Item]Blocks, comments, [hl = text: "${ }$" !] and [hl = text: "runtime ${ }$" !]: written as text.[end:Item]
+    [Item]Spaces, indents and line breaks: kept exactly.[end:Item]
+    [Item]Backslashes: kept, except before [hl = text: "[" !].[end:Item]
+    [Item][hl = text: "<" !] and [hl = text: "&" !]: escaped in the HTML, so tags show as text instead of becoming elements.[end:Item]
+  [end:List]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/raw/kept.arcm" !]
+
+  [Title = id: "ending"]Where the body ends[end:Title]
+  [Text]The raw body ends at the first [hl = text: "[end" !], whatever follows it: [hl = text: "[end]" !], [hl = text: "[end:b]" !] or [hl = text: "[end:pre]" !]. To show an [hl = text: "[end" !] inside, write [hl = text: "\\[end" !]. Opening blocks need nothing:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/raw/ending.arcm" !]
+  [Text]Forget one, and the body ends early:[end:Text]
+  [Code = lang: "log", text: '
+    [pre = arcm-raw: true][b]x[end:b] and more[end]
+
+    ✗ [end:b] does not match [pre] opened at 1:1
+  ' !]
+
+  [Title = id: "scripts"]Inline scripts[end:Title]
+  [Text]A [hl = text: "[script]" !] body is read like any other, so JavaScript with [hl = text: "[" !] or [hl = text: "#" !] breaks it. Add [hl = text: "arcm-raw: true" !]:[end:Text]
+  [Code = text: '
+    # ✗ [1] opens a block, and # starts a comment
+    [script]const list = [1, 2]; const tag = "#news";[end]
+
+    # ✓ written as it is
+    [script = arcm-raw: true]const list = [1, 2]; const tag = "#news";[end]
+  ' !]
+  [Text]Inside a script, [hl = text: "<" !] and [hl = text: "&" !] stay as they are, so JavaScript and JSON keep working. A JSON data block:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/raw/json.arcm" !]
+  [Text]For code that runs in the browser, [Link = text: "runtime code", href: "runtime.html" !] or [hl = text: "[script = src: \"./app.js\" !]" !] is usually better: it is bundled and checked.[end:Text]
+
+  [Title = id: "style"]No need in \[style][end:Title]
+  [Text][hl = text: "[style]" !] is read as CSS already: [hl = text: "#" !] is a color and [hl = text: "[href]" !] a selector. It doesn\'t need [hl = text: "arcm-raw" !]. See [Link = text: "Styles", href: "styles.html" !].[end:Text]
+
+  [Title = id: "components"]On a component[end:Title]
+  [Text]On a component, the body is passed to its slot as plain text:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/raw/component.arcm" !]
+
+  [Title = id: "rules"]Rules[end:Title]
+  [List]
+    [Item]The value must be [hl = text: "true" !]. [hl = text: "arcm-raw: \"yes\"" !] does nothing.[end:Item]
+    [Item]It works on any block with a body, and never appears in the HTML.[end:Item]
+    [Item]Add [hl = text: "arcm-syntax: \"js\"" !] to tell editors the body\'s language (experimental: no editor uses it yet).[end:Item]
+  [end:List]
+[end:Docs]

@@ -1,0 +1,15 @@
+[p]Items: [span = arcm-ref: "count"]0[end][end]
+[p = arcm-ref: "left"]10 left[end]
+[button = arcm-ref: "add"]Add[end]
+runtime ${
+  let count = 0;
+  const countEl = ArcMoon.ref(ArcMoon.defineRef("count"));
+  const leftEl = ArcMoon.ref(ArcMoon.defineRef("left"));
+  const add = ArcMoon.ref(ArcMoon.defineRef("add"));
+  add.onclick = () => {
+    count++;
+    countEl.textContent = count;
+    leftEl.textContent = `${10 - count} left`;
+    add.disabled = count >= 10;
+  };
+}$

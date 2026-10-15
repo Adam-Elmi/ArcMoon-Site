@@ -1,0 +1,5 @@
+${ const { title } = ArcMoon.props(); }$
+[section = class: "panel"]
+  [h2]${ title }$[end]
+  [slot]Nothing here yet.[end]
+[end]

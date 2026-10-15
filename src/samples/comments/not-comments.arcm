@@ -1,0 +1,10 @@
+${
+  // JavaScript comments in ${ }$
+  const page = "/page";
+}$
+[a = href: "/page#top"]Top[end]
+[pre = arcm-raw: true]# shown as written[end]
+[style]
+  /* CSS comments in [style] */
+  .note { color: #888; }
+[end]

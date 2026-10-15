@@ -1,0 +1,103 @@
+# ###################
+# The version bar: every release as a pill (newest first) that opens its page.
+# It sticks under the site header and scrolls sideways; the current one is highlighted and brought into view
+# Props: current (the version this page is about, if any), base (the path to the release pages, default "versions/")
+# ###################
+${
+  import { loadReleases } from "../../lib/releases.js";
+
+  const { current = null, base = "versions/" } = ArcMoon.props();
+  const all = loadReleases();
+  const pills = all
+    .map((r, i) => ({ version: r.version, href: `${base}${r.page}`, current: r.version === current ? "page" : null, latest: i === all.length - 1 ? ["latest"] : [] }))
+    .reverse();
+}$
+
+runtime ${
+  // ###################
+  // Bring the current version into view in the bar, without scrolling the page
+  // ###################
+  const bar = ArcMoon.ref(ArcMoon.defineRef("version-bar"));
+  const here = bar.querySelector('[aria-current="page"]');
+  if (here) bar.scrollLeft = here.offsetLeft - (bar.clientWidth - here.offsetWidth) / 2;
+}$
+
+[nav = class: "version-strip", aria-label: "All versions"]
+  [div = class: "wrap strip-row"]
+    [span = class: "strip-label"]Version[end]
+    [div = class: "strip-scroll", arcm-ref: "version-bar"]
+      [for-each = ${ pills }$, as: "v"]
+        [a = class: "strip-pill", href: ${ v.href }$, aria-current: ${ v.current }$]${ v.version }$[for-each = ${ v.latest }$, as: "l"][span = class: "strip-latest"]${ l }$[end][end][end]
+      [end]
+    [end]
+  [end]
+[end]
+
+[style]
+  /* ###################
+     The version bar: sticks under the site header, scrolls sideways
+     ################### */
+  .version-strip {
+    position: sticky;
+    top: 60px;
+    z-index: 5;
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .strip-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: 820px;
+    height: 52px;
+  }
+  .strip-label {
+    flex: none;
+    font: 500 11px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .strip-scroll {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    mask-image: linear-gradient(to right, transparent, black 12px, black calc(100% - 24px), transparent);
+    padding: 0 12px;
+  }
+  .strip-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .strip-pill {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font: 500 13px/1.3 var(--mono);
+    color: var(--muted);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .strip-pill:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+  .strip-latest {
+    padding: 0 6px;
+    font: 500 10px/1.6 var(--mono);
+    color: var(--emerald);
+    background: var(--emerald-soft);
+    border-radius: 999px;
+  }
+  .strip-pill[aria-current="page"] {
+    color: var(--on-accent);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+[end]

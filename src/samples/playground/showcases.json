@@ -1,0 +1,9 @@
+[
+	{ "slug": "welcome", "title": "Getting started", "custom": true },
+	{ "slug": "counter", "title": "Counter" },
+	{ "slug": "loop", "title": "[for-each] loop" },
+	{ "slug": "todo", "title": "To-do list" },
+	{ "slug": "tabs", "title": "Tabs" },
+	{ "slug": "input", "title": "Live input" },
+	{ "slug": "styles", "title": "CSS animation" }
+]

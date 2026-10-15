@@ -1,0 +1,290 @@
+# ###################
+# Home: a rose hero with a working ArcMoon demo, then the features
+# ###################
+[import = Site: "@/layouts/Site.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Features: "@/components/Features.arcm" !]
+[import = Compare: "@/components/Compare.arcm" !]
+[import = Tabs: "@/components/docs/Tabs.arcm" !]
+
+${
+  // ###################
+  // The browser build from a CDN, at the version this site is built with
+  // (only CDNs that serve dist/ as it is: browser.js finds worker.js next to itself)
+  // ###################
+  const cdn = (url) => `import ArcMoon from "${url}";\nconst html = await new ArcMoon({ src: "[p]Hello World[end]" }).compile();`;
+  const jsdelivr = cdn(`https://cdn.jsdelivr.net/npm/arcmoon@${ArcMoon.version}/dist/browser.js`);
+  const unpkg = cdn(`https://unpkg.com/arcmoon@${ArcMoon.version}/dist/browser.js`);
+}$
+
+runtime ${
+  // ###################
+  // The hero demo: the same code as the counter.arcm window next to it, running on this page
+  // ###################
+  import { signal } from "arcmoon/reactive";
+  const count = signal(0);
+  const add = () => count(count() + 1);
+}$
+
+[Site = title: "ArcMoon", description: "ArcMoon is a template language. You write .arcm files, and ArcMoon builds them into web pages."]
+  [section = class: "hero"]
+    [svg = class: "hero-moon", viewBox: "0 0 600 600", aria-hidden: "true"]
+      [defs]
+        [mask = id: "crescent"]
+          [rect = width: "600", height: "600", fill: "white" !]
+          [circle = cx: "390", cy: "250", r: "250", fill: "black" !]
+        [end]
+      [end]
+      [circle = cx: "300", cy: "300", r: "280", fill: "currentColor", mask: "url(#crescent)" !]
+    [end]
+
+    [div = class: "wrap hero-grid"]
+      [div = class: "hero-text"]
+        [p = class: "hero-kicker"]ArcMoon · 1.0 stable[end]
+        [h1]A template language for web pages.[end]
+        [p = class: "pitch"]
+          Everything you need to build a web page, in one simple language.
+          ArcMoon turns it into plain HTML, CSS and JavaScript.
+        [end]
+        [div = class: "actions"]
+          [a = class: "primary", href: "docs/index.html"]Get started[end]
+          [a = class: "secondary", href: "https://github.com/Adam-Elmi/ArcMoon"]View on GitHub[end]
+        [end]
+        [div = class: "install"][Code = lang: "bash", title: "install", copy: "always", text: "npm install -g arcmoon" !][end]
+        [div = class: "cdn"]
+          [p = class: "cdn-label"]Or use it in the browser:[end]
+          [Tabs = labels: ${ ["jsDelivr", "unpkg"] }$]
+            [Code = lang: "js", copy: "always", text: ${ jsdelivr }$ !]
+            [Code = lang: "js", copy: "always", text: ${ unpkg }$ !]
+          [end:Tabs]
+        [end]
+      [end]
+
+      [div = class: "demo"]
+        [div = class: "window"]
+          [div = class: "bar"]
+            [span = class: "dots"][i!][i!][i!][end]
+            [span]counter.arcm[end]
+          [end]
+          [Code = title: "counter.arcm", text: '
+            runtime ${
+              import { signal } from "arcmoon/reactive";
+              const count = signal(0);
+              const add = () => count(count() + 1);
+            }$
+            [button = onclick: runtime ${ add }$]
+              Clicked runtime ${ count() }$ times
+            [end]
+          ' !]
+          [div = class: "result"]
+            [span = class: "result-label"]Result · try it[end]
+            [button = class: "try", type: "button", onclick: runtime ${ add }$]
+              Clicked runtime ${ count() }$ times
+            [end]
+          [end]
+        [end]
+        [p = class: "caption"]This button is built by ArcMoon from the code above. The whole site is .arcm files.[end]
+      [end]
+    [end]
+  [end]
+
+  [Compare!]
+  [Features!]
+[end:Site]
+
+[style]
+  .hero {
+    --rose: #d7263d;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: clamp(56px, 8vw, 104px) 0;
+    color: #fff;
+    background:
+      radial-gradient(circle at 85% 20%, rgb(255 255 255 / 0.16), transparent 45%),
+      radial-gradient(circle at 10% 110%, rgb(0 0 0 / 0.18), transparent 50%),
+      var(--rose);
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: radial-gradient(rgb(255 255 255 / 0.14) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(to left, black, transparent 70%);
+  }
+  .hero-moon {
+    position: absolute;
+    z-index: -1;
+    top: 50%;
+    right: -120px;
+    width: min(720px, 70vw);
+    transform: translateY(-50%) rotate(-18deg);
+    color: rgb(255 255 255 / 0.08);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(40px, 6vw, 88px);
+    align-items: center;
+  }
+  .hero-kicker {
+    margin: 0;
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.8);
+  }
+  .hero h1 {
+    margin: 16px 0 18px;
+    font: 600 clamp(32px, 4vw, 48px)/1.08 var(--serif);
+    letter-spacing: -0.02em;
+  }
+  .pitch {
+    max-width: 46ch;
+    margin: 0 0 26px;
+    font-size: 17px;
+    color: rgb(255 255 255 / 0.88);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .actions a {
+    padding: 10px 18px;
+    font-weight: 500;
+    font-size: 15px;
+    color: #fff;
+    text-decoration: none;
+    border: 1px solid rgb(255 255 255 / 0.55);
+    border-radius: 8px;
+  }
+  .actions .primary {
+    color: var(--rose);
+    background: #fff;
+    border-color: #fff;
+  }
+  .actions .primary:hover {
+    background: rgb(255 255 255 / 0.9);
+  }
+  .actions .secondary:hover {
+    background: rgb(255 255 255 / 0.1);
+  }
+  .install {
+    max-width: 520px;
+    margin-top: 26px;
+  }
+
+  /* ###################
+     CDN tabs on the rose: the tab row reads these colors, so white ones are set on it
+     (only there: the code blocks and their copy buttons keep the normal ones)
+     ################### */
+  .cdn {
+    max-width: 520px;
+    margin-top: 22px;
+  }
+  .cdn :global(.tablist) {
+    --accent: #fff;
+    --accent-ink: #fff;
+    --muted: rgb(255 255 255 / 0.7);
+    --ink: #fff;
+    --line: rgb(255 255 255 / 0.3);
+  }
+  .cdn-label {
+    margin: 0;
+    font-size: 14px;
+    color: rgb(255 255 255 / 0.85);
+  }
+  .cdn :global(.tabs) {
+    margin: 6px 0 0;
+  }
+  .cdn :global(.code) {
+    margin: 0;
+  }
+  .cdn :global(.code pre) {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .demo {
+    position: relative;
+  }
+  .window {
+    overflow: hidden;
+    color: var(--ink);
+    background: var(--code-bg);
+    border-radius: 14px;
+    box-shadow: 0 30px 60px -20px rgb(60 0 10 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.12);
+  }
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    font: 500 12px/1 var(--mono);
+    color: var(--muted);
+    border-bottom: 1px solid var(--code-line);
+  }
+  .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dots i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--line-strong);
+  }
+  .dots i:first-child {
+    background: var(--rose);
+  }
+  .window :global(figure) {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+  .window :global(figcaption) {
+    display: none;
+  }
+  .result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border-top: 1px solid var(--code-line);
+  }
+  .result-label {
+    font: 500 12px/1 var(--mono);
+    color: var(--faint);
+  }
+  .try {
+    padding: 9px 16px;
+    font: 500 14px/1 var(--sans);
+    color: #fff;
+    background: var(--rose);
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .try:active {
+    transform: scale(0.96);
+  }
+  .caption {
+    margin: 22px 0 0;
+    font-size: 14px;
+    color: rgb(255 255 255 / 0.85);
+  }
+  @media (max-width: 900px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .hero-moon {
+      top: 0;
+      transform: rotate(-18deg);
+    }
+  }
+[end]

@@ -1,0 +1,102 @@
+# ###################
+# Docs: Syntax
+# The whole language on one page; each part links to the page that goes deeper
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "syntax"]
+  [Text]This page shows all of ArcMoon in short examples. Each part links to its own page for the details.[end:Text]
+
+  [Title = id: "blocks"]Blocks[end:Title]
+  [Text]A block is an HTML element: [hl = text: "[name]" !] opens it, [hl = text: "[end]" !] closes it, and [hl = text: "!" !] means it has no body.[end:Text]
+  [Code = output: true, text: '
+    [section]
+      [h1]Users[end:h1]
+      [p]Three [strong]active[end] users.[end]
+      [hr!]
+    [end:section]
+  ' !]
+  [Text]More in [Link = text: "Blocks", href: "blocks.html" !] and [Link = text: "Self-closing blocks", href: "self-closing.html" !].[end:Text]
+
+  [Title = id: "props"]Props[end:Title]
+  [Text]Props go after [hl = text: "=" !] as [hl = text: "name: value" !]. On an element they become attributes:[end:Text]
+  [Code = output: true, text: '
+    [a = href: "/users", class: "link"]All users[end]
+    [input = type: "email", required: true, disabled: false !]
+    [p = css.color: "teal", --gap: "8px"]Styled[end]
+  ' !]
+  [Text]More in [Link = text: "Props", href: "props.html" !].[end:Text]
+
+  [Title = id: "comments"]Comments[end:Title]
+  [Code = output: true, text: '
+    # one line
+    ###
+      many lines
+    ###
+    [p]Shown[end]
+  ' !]
+  [Text]More in [Link = text: "Comments", href: "comments.html" !].[end:Text]
+
+  [Title = id: "escaping"]Escaping and raw text[end:Title]
+  [Text]A backslash makes [hl = text: "[" !], [hl = text: "#" !] and [hl = text: "${" !] plain text. [hl = text: "arcm-raw: true" !] writes a whole body as it is:[end:Text]
+  [Code = output: true, text: '
+    [p]Write \[p] for a paragraph, \#1 for a number.[end]
+    [pre = arcm-raw: true][b] and # stay as written[end]
+  ' !]
+  [Text]More in [Link = text: "Escaping", href: "escaping.html" !] and [Link = text: "Raw text", href: "raw.html" !].[end:Text]
+
+  [Title = id: "build-time"]Build-time code[end:Title]
+  [Text][hl = text: "${ }$" !] runs in Node.js while the page is built. Only its result goes into the HTML:[end:Text]
+  [Code = output: true, text: '
+    ${ const types = ["string", "number", "boolean"]; }$
+    [p]ArcMoon props can be ${ types.join(", ") }$.[end]
+  ' !]
+  [Text]More in [Link = text: "Build-time code", href: "build-time.html" !].[end:Text]
+
+  [Title = id: "loops"]Loops[end:Title]
+  [Text][hl = text: "[for-each]" !] writes its body once for each item; [hl = text: "i" !] is the position:[end:Text]
+  [Code = output: true, text: '
+    ${ const users = [{ name: "Adam", role: "admin" }, { name: "Eid", role: "editor" }]; }$
+    [ul]
+      [for-each = ${ users }$, as: "user"]
+        [li = data-role: ${ user.role }$]${ i + 1 }$. ${ user.name }$[end]
+      [end]
+    [end]
+  ' !]
+  [Text]More in [Link = text: "Loops", href: "loops.html" !].[end:Text]
+
+  [Title = id: "runtime"]Runtime code[end:Title]
+  [Text][hl = text: "runtime ${ }$" !] runs in the visitor\'s browser. With a signal, the page updates by itself:[end:Text]
+  [Code = text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(0);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]Clicked runtime ${ count() }$ times[end]
+  ' !]
+  [Text]More in [Link = text: "Runtime code", href: "runtime.html" !] and [Link = text: "Reactivity", href: "reactivity.html" !].[end:Text]
+
+  [Title = id: "components"]Components[end:Title]
+  [Text]A component is another [hl = text: ".arcm" !] file. [hl = text: "[import]" !] names it, [hl = text: "ArcMoon.props()" !] reads its props, and [hl = text: "[slot!]" !] holds the body it is given:[end:Text]
+  [Code = title: "UserCard.arcm", file: "src/samples/syntax/UserCard.arcm" !]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/syntax/use-card.arcm" !]
+  [Text]More in [Link = text: "Components", href: "components.html" !] and [Link = text: "Built-in blocks", href: "built-in.html" !].[end:Text]
+
+  [Title = id: "styles"]Styles[end:Title]
+  [Text]A [hl = text: "[style]" !] is CSS: global in a page, scoped to the component in a component (like [hl = text: "UserCard" !] above). [hl = text: "css." !] and [hl = text: "--" !] props style one element. More in [Link = text: "Styles", href: "styles.html" !].[end:Text]
+
+  [Title = id: "no-output"]Lines with no output[end:Title]
+  [Text]A line that only holds things with no output is left out of the HTML entirely, with its indent and line break, so imports, comments and setup code leave no blank lines:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/syntax/no-output.arcm" !]
+  [List]
+    [Item]Things with no output: [hl = text: "[import]" !], comments, a top-level [hl = text: "runtime ${ }$" !] block, and a [hl = text: "${ }$" !] that doesn\'t end with a value (like [hl = text: "${ const n = 2; }$" !]).[end:Item]
+    [Item]Blank lines you write between elements are kept.[end:Item]
+  [end:List]
+[end:Docs]

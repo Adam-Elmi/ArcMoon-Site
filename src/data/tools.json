@@ -1,0 +1,22 @@
+[
+	{
+		"slug": "highlight",
+		"name": "arcmoon-highlight",
+		"short": "Colors ArcMoon code, on a page or in a live editor.",
+		"summary": "Syntax highlighting for .arcm code: highlighted HTML in Node.js or the browser, and a live editor that shows errors as you type.",
+		"keywords": ["syntax", "highlight", "colors", "editor", "codemirror", "errors", "diagnostics", "cdn", "library"],
+		"npm": "https://www.npmjs.com/package/arcmoon-highlight",
+		"repo": "https://github.com/Adam-Elmi/ArcMoon/tree/master/tools/highlight",
+		"install": { "npm": "npm install arcmoon-highlight", "pnpm": "pnpm add arcmoon-highlight", "bun": "bun add arcmoon-highlight" }
+	},
+	{
+		"slug": "lsp",
+		"name": "arcmoon-lsp",
+		"short": "Errors, completions and colors for .arcm files in your editor.",
+		"summary": "The language server for .arcm files: errors, completions, hover, go to definition and colors in VS Code, Zed, Neovim and Vim.",
+		"keywords": ["language server", "lsp", "editor", "vscode", "zed", "neovim", "vim", "errors", "completions", "hover", "format"],
+		"npm": "https://www.npmjs.com/package/arcmoon-lsp",
+		"repo": "https://github.com/Adam-Elmi/ArcMoon-LSP",
+		"install": { "npm": "npm install -g arcmoon-lsp", "pnpm": "pnpm add -g arcmoon-lsp", "bun": "bun add -g arcmoon-lsp" }
+	}
+]

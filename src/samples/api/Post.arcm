@@ -1,0 +1,9 @@
+${ const { title, body } = ArcMoon.props(); }$
+[doctype!]
+[html = lang: "en"]
+  [head][title]${ title }$[end][end]
+  [body]
+    [h1]${ title }$[end]
+    [p]${ body }$[end]
+  [end]
+[end]

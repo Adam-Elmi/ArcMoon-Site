@@ -1,0 +1,3 @@
+[import = Profile: "./Profile.arcm" !]
+[Profile = name: "Adam", role: "Engineer", skills: ${ ["JavaScript", "ArcMoon"] }$ !]
+[Profile = name: "Elmi" !]

@@ -1,0 +1,16 @@
+# Add tasks in the browser: refs and a little runtime code
+runtime ${
+  const list = ArcMoon.ref(ArcMoon.defineRef("list"));
+  const task = ArcMoon.ref(ArcMoon.defineRef("task"));
+  const add = (e) => {
+    e.preventDefault();
+    list.append(Object.assign(document.createElement("li"), { textContent: task.value }));
+    task.value = "";
+  };
+}$
+
+[form = onsubmit: runtime ${ add }$]
+  [input = arcm-ref: "task", placeholder: "New task", required: true !]
+  [button]Add[end:button]
+[end:form]
+[ul = arcm-ref: "list"][end:ul]

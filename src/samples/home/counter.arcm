@@ -1,0 +1,8 @@
+runtime ${
+  import { signal } from "arcmoon/reactive";
+  const count = signal(0);
+  const add = () => count(count() + 1);
+}$
+[button = onclick: runtime ${ add }$]
+  Clicked runtime ${ count() }$ times
+[end]

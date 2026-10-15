@@ -1,0 +1,120 @@
+# ###################
+# 404: shown for any address that has no page
+# Links start at "/" because this page can be served from any folder
+# ###################
+[import = Site: "@/layouts/Site.arcm" !]
+
+runtime ${
+  // ###################
+  // Show the address that was asked for
+  // ###################
+  const path = ArcMoon.ref(ArcMoon.defineRef("path"));
+  path.textContent = decodeURIComponent(location.pathname);
+}$
+
+[Site = title: "Page not found", description: "This page doesn't exist.", root: "/", section: "404"]
+  [section = class: "lost"]
+    [svg = class: "lost-moon", viewBox: "0 0 600 600", aria-hidden: "true"]
+      [defs]
+        [mask = id: "lost-crescent"]
+          [rect = width: "600", height: "600", fill: "white" !]
+          [circle = cx: "390", cy: "250", r: "250", fill: "black" !]
+        [end]
+      [end]
+      [circle = cx: "300", cy: "300", r: "280", fill: "currentColor", mask: "url(#lost-crescent)" !]
+    [end]
+    [div = class: "wrap lost-body"]
+      [p = class: "lost-code"]404[end]
+      [h1]Page not found.[end]
+      [p = class: "lost-text"]There is no page at this address. It may have moved, or the link may have a typo.[end]
+      [p = class: "lost-path"][code = arcm-ref: "path"][end][end]
+      [div = class: "lost-links"]
+        [a = class: "lost-primary", href: "/index.html"]Go home[end]
+        [a = class: "lost-secondary", href: "/docs/index.html"]Read the docs[end]
+      [end]
+    [end]
+  [end]
+[end:Site]
+
+[style]
+  .lost {
+    position: relative;
+    overflow: hidden;
+    padding: 96px 0 112px;
+  }
+  .lost-moon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(620px, 140vw);
+    color: var(--accent);
+    opacity: 0.07;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .lost-body {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .lost-code {
+    margin: 0;
+    font: 300 clamp(96px, 22vw, 168px)/1 var(--serif);
+    letter-spacing: -0.04em;
+    color: var(--accent);
+  }
+  .lost h1 {
+    margin: 12px 0 10px;
+    font: 600 clamp(24px, 5vw, 32px)/1.2 var(--sans);
+    letter-spacing: -0.01em;
+  }
+  .lost-text {
+    max-width: 440px;
+    margin: 0;
+    color: var(--muted);
+  }
+  .lost-path {
+    max-width: 100%;
+    margin: 18px 0 0;
+  }
+  .lost-path code {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+  }
+  .lost-path:has(code:empty) {
+    visibility: hidden;
+  }
+  .lost-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 32px;
+  }
+  .lost-links a {
+    padding: 10px 20px;
+    font-weight: 500;
+    font-size: 15px;
+    text-decoration: none;
+    border-radius: 8px;
+  }
+  .lost-primary {
+    color: var(--on-accent);
+    background: var(--accent);
+  }
+  .lost-primary:hover {
+    background: var(--accent-ink);
+  }
+  .lost-secondary {
+    color: var(--ink);
+    border: 1px solid var(--line-strong);
+  }
+  .lost-secondary:hover {
+    border-color: var(--ink);
+  }
+[end]

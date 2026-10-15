@@ -1,0 +1,4 @@
+[p = class: "note"]Inside the component[end]
+[style]
+  .note { color: crimson; }
+[end]

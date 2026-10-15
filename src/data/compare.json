@@ -1,0 +1,87 @@
+{
+	"engines": [
+		{ "id": "arcmoon", "name": "ArcMoon" },
+		{ "id": "ejs", "name": "EJS" },
+		{ "id": "pug", "name": "Pug" },
+		{ "id": "nunjucks", "name": "Nunjucks" },
+		{ "id": "handlebars", "name": "Handlebars" },
+		{ "id": "liquid", "name": "Liquid" }
+	],
+	"rows": [
+		{
+			"feature": "Plain HTML output",
+			"cells": { "arcmoon": ["yes"], "ejs": ["yes"], "pug": ["yes"], "nunjucks": ["yes"], "handlebars": ["yes"], "liquid": ["yes"] }
+		},
+		{
+			"feature": "Layouts",
+			"cells": {
+				"arcmoon": ["yes", "slots"],
+				"ejs": ["partial", "includes"],
+				"pug": ["yes", "extends"],
+				"nunjucks": ["yes", "extends"],
+				"handlebars": ["partial", "partials"],
+				"liquid": ["yes", "layout"]
+			}
+		},
+		{
+			"feature": "Components with props and content inside",
+			"cells": {
+				"arcmoon": ["yes", "props, slots"],
+				"ejs": ["partial", "include with data"],
+				"pug": ["partial", "mixins"],
+				"nunjucks": ["partial", "macros"],
+				"handlebars": ["partial", "partial blocks"],
+				"liquid": ["partial", "render with data"]
+			}
+		},
+		{
+			"feature": "CSS that belongs to a component",
+			"cells": { "arcmoon": ["yes", "scoped [style]"], "ejs": ["no"], "pug": ["no"], "nunjucks": ["no"], "handlebars": ["no"], "liquid": ["no"] }
+		},
+		{
+			"feature": "JavaScript while the page is built",
+			"cells": {
+				"arcmoon": ["yes", "imports, npm, node:, fetch"],
+				"ejs": ["partial", "JS code, no imports"],
+				"pug": ["partial", "JS code, no imports"],
+				"nunjucks": ["no", "own expressions"],
+				"handlebars": ["no", "helpers written in JS"],
+				"liquid": ["no", "own expressions"]
+			}
+		},
+		{
+			"feature": "Reactivity in the browser",
+			"cells": { "arcmoon": ["yes", "signals, live values"], "ejs": ["no"], "pug": ["no"], "nunjucks": ["no"], "handlebars": ["no"], "liquid": ["no"] }
+		},
+		{
+			"feature": "Bundles the page's JS and CSS",
+			"cells": { "arcmoon": ["yes", "esbuild"], "ejs": ["no"], "pug": ["no"], "nunjucks": ["no"], "handlebars": ["no"], "liquid": ["no"] }
+		},
+		{
+			"feature": "Safe with templates you didn't write",
+			"cells": {
+				"arcmoon": ["yes", "shows what they do, you trust them"],
+				"ejs": ["no"],
+				"pug": ["no"],
+				"nunjucks": ["no"],
+				"handlebars": ["no"],
+				"liquid": ["yes", "can't run code"]
+			}
+		},
+		{
+			"feature": "Runs in the browser too",
+			"cells": { "arcmoon": ["yes"], "ejs": ["yes"], "pug": ["yes"], "nunjucks": ["yes"], "handlebars": ["yes"], "liquid": ["yes"] }
+		},
+		{
+			"feature": "Renders on each server request",
+			"cells": {
+				"arcmoon": ["partial", "possible; made for built pages"],
+				"ejs": ["yes"],
+				"pug": ["yes"],
+				"nunjucks": ["yes"],
+				"handlebars": ["yes"],
+				"liquid": ["yes"]
+			}
+		}
+	]
+}

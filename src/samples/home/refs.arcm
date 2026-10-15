@@ -1,0 +1,6 @@
+runtime ${
+  import confetti from "canvas-confetti";
+  const button = ArcMoon.ref(ArcMoon.defineRef("party"));
+  button.addEventListener("click", () => confetti());
+}$
+[button = arcm-ref: "party"]Celebrate[end]

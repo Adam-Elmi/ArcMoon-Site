@@ -1,0 +1,14 @@
+# ###################
+# A list: [List]…[end:List], or [List = type: "order"] for 1. 2. 3.
+# Put [Item]s inside (or any tags, like [li])
+# ###################
+${ const { type = "bullet" } = ArcMoon.props(); }$
+[for-each = ${ type === "order" ? [] : [1] }$][ul = class: "list"][slot!][end][end]
+[for-each = ${ type === "order" ? [1] : [] }$][ol = class: "list"][slot!][end][end]
+
+[style]
+  .list {
+    margin: 0 0 16px;
+    padding-left: 22px;
+  }
+[end]

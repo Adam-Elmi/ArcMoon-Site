@@ -1,0 +1,2 @@
+[import = Layout: "./Layout.arcm" !]
+[Layout][p]My page content.[end][end:Layout]

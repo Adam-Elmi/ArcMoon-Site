@@ -1,0 +1,119 @@
+[
+	{
+		"name": "Components",
+		"detail": "Split pages into reusable .arcm files. Pass them props and content, like HTML tags you make yourself.",
+		"text": "A component is an .arcm file. It reads its props with ArcMoon.props(), and you use it like any other block. Use it on as many pages as you like.",
+		"link": {
+			"href": "docs/components.html",
+			"label": "Components"
+		},
+		"glyph": "[Component]",
+		"examples": [
+			{
+				"file": "src/samples/start/Greeting.arcm"
+			},
+			{
+				"file": "src/samples/start/use-greeting.arcm",
+				"output": true
+			}
+		]
+	},
+	{
+		"name": "Data at build time",
+		"detail": "${ }$ runs Node.js while the page is built: read files, call APIs, use npm packages. Visitors get finished HTML.",
+		"text": "Import JSON, read files with node:fs, fetch from an API or use any npm package. It all runs once, while the page is built.",
+		"link": {
+			"href": "docs/build-time.html",
+			"label": "Build-time code"
+		},
+		"glyph": "${ }$",
+		"examples": [
+			{
+				"file": "src/samples/home/data.arcm",
+				"output": true
+			}
+		]
+	},
+	{
+		"name": "Interactive without a framework",
+		"detail": "Signals and live values update the page in the browser. A small signals library, no virtual DOM.",
+		"text": "A signal holds a value. Write runtime ${ count() }$ in the markup, and that spot updates when the value changes.",
+		"link": {
+			"href": "docs/runtime.html",
+			"label": "Runtime code"
+		},
+		"glyph": "signal()",
+		"examples": [
+			{
+				"file": "src/samples/home/counter.arcm"
+			}
+		]
+	},
+	{
+		"name": "Styles that stay put",
+		"detail": "A component's [style] only styles that component, so class names never clash between files.",
+		"text": "ArcMoon gives the component's elements an attribute and adds it to every selector. Two components can both use .badge.",
+		"link": {
+			"href": "docs/styles.html",
+			"label": "Styles"
+		},
+		"glyph": "[style]",
+		"examples": [
+			{
+				"file": "src/samples/home/Badge.arcm"
+			},
+			{
+				"file": "src/samples/home/use-badge.arcm",
+				"output": true
+			}
+		]
+	},
+	{
+		"name": "Browser code with runtime ${ }$",
+		"detail": "Handle events, reach elements with refs and use npm packages. ArcMoon bundles it into the page for you.",
+		"text": "Mark an element with arcm-ref and get it with ArcMoon.ref(). npm packages listed in bundle are bundled by esbuild.",
+		"link": {
+			"href": "docs/runtime.html",
+			"label": "Refs"
+		},
+		"glyph": "runtime",
+		"examples": [
+			{
+				"file": "src/samples/home/refs.arcm"
+			}
+		]
+	},
+	{
+		"name": "Loops with [for-each]",
+		"detail": "Repeat markup for every item in a list, like table rows or cards. No copying the same HTML by hand.",
+		"text": "[for-each] repeats its body for each item. The list can come from a file, an API or code in ${ }$.",
+		"link": {
+			"href": "docs/syntax.html",
+			"label": "Syntax"
+		},
+		"glyph": "[for-each]",
+		"examples": [
+			{
+				"file": "src/samples/home/loop.arcm",
+				"output": true
+			}
+		]
+	},
+	{
+		"name": "Static files, ready to ship",
+		"detail": "esbuild bundles your JS, CSS and npm packages. Upload dist/ to any host.",
+		"text": "One command builds every page. No server needed: put dist/ on any static host.",
+		"link": {
+			"href": "docs/cli.html",
+			"label": "CLI and config"
+		},
+		"glyph": "dist/",
+		"examples": [
+			{
+				"file": "src/samples/home/build.txt",
+				"lang": "text",
+				"title": "terminal"
+			}
+		]
+	}
+]

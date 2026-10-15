@@ -1,0 +1,13 @@
+# ###################
+# One panel of [Tabs]: [Tab]…[end:Tab]. Optional: any tag works as a panel too
+# ###################
+[div = class: "tab-panel", role: "tabpanel"][slot!][end]
+
+[style]
+  .tab-panel > :global(:first-child) {
+    margin-top: 0;
+  }
+  .tab-panel > :global(:last-child) {
+    margin-bottom: 0;
+  }
+[end]

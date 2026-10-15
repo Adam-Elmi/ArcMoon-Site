@@ -1,0 +1,50 @@
+# ###################
+# Docs: Self-closing blocks
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "self-closing"]
+  [Title = id: "write"]Writing one[end:Title]
+  [Text]A block with no body ends with [hl = text: "!" !]. It needs no [hl = text: "[end]" !]:[end:Text]
+  [Code = output: true, text: '
+    [br!]
+    [hr !]
+    [img = src: "logo.svg", alt: "Logo" !]
+  ' !]
+  [Text]The space before [hl = text: "!" !] is optional: [hl = text: "[hr!]" !] and [hl = text: "[hr !]" !] are the same.[end:Text]
+
+  [Title = id: "void"]Elements with no content[end:Title]
+  [Text]Some HTML elements never have content. Write them self-closing; the HTML gets no closing tag:[end:Text]
+  [Code = output: true, text: '
+    [meta = charset: "utf-8" !]
+    [link = rel: "icon", href: "icon.svg" !]
+    [input = type: "email", required: true !]
+  ' !]
+  [Text]These are [hl = text: "br" !], [hl = text: "hr" !], [hl = text: "img" !], [hl = text: "input" !], [hl = text: "meta" !], [hl = text: "link" !], [hl = text: "source" !], [hl = text: "track" !], [hl = text: "wbr" !], [hl = text: "area" !], [hl = text: "base" !], [hl = text: "col" !] and [hl = text: "embed" !].[end:Text]
+
+  [Title = id: "empty"]Empty elements[end:Title]
+  [Text]Any other element can be self-closing too. It becomes an empty element, with its closing tag:[end:Text]
+  [Code = output: true, text: '
+    [div = class: "spacer" !]
+    [span = class: "dot" !]
+    [textarea = name: "note" !]
+  ' !]
+
+  [Title = id: "components"]Components[end:Title]
+  [Text]A self-closing component has no body, so its [hl = text: "[slot]" !] shows its fallback:[end:Text]
+  [Code = title: "Card.arcm", file: "src/samples/self-closing/Card.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/self-closing/use-card.arcm" !]
+
+  [Title = id: "always"]Always self-closing[end:Title]
+  [Text][hl = text: "[import]" !] and [hl = text: "[doctype!]" !] never take a body. [hl = text: "[import]" !] without [hl = text: "!" !] stops the build:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ [import] must be self-closing: [import = Name: "./file.arcm" !]
+  ' !]
+[end:Docs]

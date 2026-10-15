@@ -1,0 +1,7 @@
+${ import posts from "./posts.json"; }$
+[for-each = ${ posts }$, as: "post"]
+  [article]
+    [h2]${ post.title }$[end]
+    [time]${ post.date }$[end]
+  [end]
+[end]

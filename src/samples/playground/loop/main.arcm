@@ -1,0 +1,14 @@
+# [for-each] writes its body once for each user; i is the position
+${
+  const users = [
+    { name: "Adam", role: "admin" },
+    { name: "Eid", role: "editor" },
+    { name: "Ismail", role: "viewer" }
+  ];
+}$
+
+[ol]
+  [for-each = ${ users }$, as: "user"]
+    [li = data-role: ${ user.role }$]${ user.name }$ [small]${ user.role }$[end][end:li]
+  [end:for-each]
+[end:ol]

@@ -1,0 +1,2 @@
+call LspOptionsSet(#{ semanticHighlight: v:true })
+call LspAddServer([#{ name: 'arcmoon', filetype: ['arcmoon'], path: 'arcmoon-lsp', args: ['--stdio'] }])

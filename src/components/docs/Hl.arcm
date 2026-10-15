@@ -1,0 +1,10 @@
+# ###################
+# Inline code: [hl = text: "${ }$" !]
+# ArcMoon-highlighted, or one color with selectColor (1 to 6)
+# ###################
+${
+  import { staticHighlight } from "arcmoon-highlight";
+  const { text, selectColor = null } = ArcMoon.props();
+  const html = selectColor ? null : staticHighlight(text, { classPrefix: "arcm-" });
+}$
+[code = class: ${ selectColor ? `hl pick-${selectColor}` : "hl" }$]${ html ? { raw: html } : text }$[end]

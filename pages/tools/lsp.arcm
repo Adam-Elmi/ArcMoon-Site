@@ -1,0 +1,188 @@
+# ###################
+# Tool: arcmoon-lsp
+# ###################
+[import = Tool: "@/layouts/Tool.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+[import = Note: "@/components/docs/Note.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+
+[Tool = slug: "lsp"]
+  [Text]
+    An [hl = text: ".arcm" !] file holds four languages: ArcMoon markup, CSS in [hl = text: "[style]" !], build-time
+    JavaScript in [hl = text: "${ }$" !] and browser JavaScript in [hl = text: "runtime ${ }$" !]. The language server
+    helps with all four, in any editor that speaks LSP: errors, completions, hover, go to definition, colors, quick fixes and formatting.
+  [end:Text]
+  [Note]
+    [Text]No code runs while you type: the server only reads your files. It needs Node.js 20.10 or newer (not for VS Code, which brings its own).[end:Text]
+  [end:Note]
+
+  [Title = id: "editors"]Set up your editor[end:Title]
+  [List]
+    [Item][strong]VS Code, VSCodium:[end] install the extension. Nothing else.[end:Item]
+    [Item][strong]Zed, Neovim, Vim:[end] install the server ([hl = text: "npm install -g arcmoon-lsp" !]), then run [hl = text: "arcmoon-lsp init <editor>" !].[end:Item]
+    [Item][strong]Any other LSP editor:[end] see [Link = text: "Other editors", href: "#other" !].[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "vscode"]VS Code[end:Title]
+  [Text]The extension comes with the server inside, so VS Code needs nothing else: no Node.js, no global install.[end:Text]
+  [List = type: "order"]
+    [Item]Open the Extensions view: Ctrl+Shift+X (Cmd+Shift+X on macOS).[end:Item]
+    [Item]Search for [strong]ArcMoon Language[end] and click [strong]Install[end].[end:Item]
+    [Item]Open a .arcm file.[end:Item]
+  [end:List]
+  [Code = lang: "bash", copy: "always", text: "code --install-extension Adam-Elmi.arcmoon-language" !]
+  [Text]
+    It\'s on the [Link = text: "Marketplace", href: "https://marketplace.visualstudio.com/items?itemName=Adam-Elmi.arcmoon-language" !],
+    and on [Link = text: "Open VSX", href: "https://open-vsx.org/extension/Adam-Elmi/arcmoon-language" !] for VSCodium and other editors based on VS Code.
+    To run a different copy of the server, point [hl = text: "arcmoon.server.path" !] at its [hl = text: "cli.js" !]; leave it empty normally:
+  [end:Text]
+  [Code = lang: "json", title: "settings.json", file: "src/samples/tools/lsp/vscode-settings.json" !]
+
+  [Title = size: 3, id: "zed"]Zed[end:Title]
+  [Text]Zed builds the extension itself, so it needs Rust, installed with rustup. After installing the server:[end:Text]
+  [List = type: "order"]
+    [Item]Create the extension folder: [hl = text: "arcmoon-lsp init zed" !]. It asks where to put it, and offers to add the Rust target it needs.[end:Item]
+    [Item]In Zed, open the command palette (Ctrl+Shift+P), run [strong]zed: install dev extension[end] and pick that folder.[end:Item]
+    [Item]Turn on the server\'s colors in Zed\'s settings.json (Zed leaves them off by default):[end:Item]
+  [end:List]
+  [Code = lang: "json", title: "settings.json", text: '
+    {
+      "languages": {
+        "ArcMoon": { "semantic_tokens": "full" }
+      }
+    }
+  ' !]
+
+  [Title = size: 3, id: "neovim"]Neovim[end:Title]
+  [Text]Neovim 0.11 or newer works with its built-in LSP; older versions use nvim-lspconfig. After installing the server:[end:Text]
+  [List = type: "order"]
+    [Item]Run [hl = text: "arcmoon-lsp init neovim" !]. It writes [hl = text: "arcmoon.lua" !] into [hl = text: "~/.config/nvim/lua/" !].[end:Item]
+    [Item]Load it from your [hl = text: "init.lua" !] with [hl = text: "require(\"arcmoon\")" !], then restart Neovim.[end:Item]
+  [end:List]
+  [Text]The file, if you\'d rather add it yourself. It registers the [hl = text: "arcmoon" !] file type, starts the server, and makes [hl = text: "gc" !] comment with [hl = text: "#" !]:[end:Text]
+  [Code = lang: "lua", title: "arcmoon.lua", file: "src/samples/tools/lsp/arcmoon.lua" !]
+
+  [Title = size: 3, id: "vim"]Vim[end:Title]
+  [Text]Vim needs an LSP plugin: coc.nvim, or yegappan/lsp on Vim 9. After installing the server:[end:Text]
+  [List = type: "order"]
+    [Item]Run [hl = text: "arcmoon-lsp init vim" !]. It makes .arcm files open as ArcMoon (with [hl = text: "#" !] comments), then asks which plugin you use and sets it up.[end:Item]
+    [Item]Restart Vim and open a .arcm file.[end:Item]
+  [end:List]
+  [Text]For coc.nvim it adds this to [hl = text: "coc-settings.json" !] (after asking; a file with comments is left alone and the settings are printed instead):[end:Text]
+  [Code = lang: "json", title: "coc-settings.json", file: "src/samples/tools/lsp/coc-settings.json" !]
+  [Text]With yegappan/lsp, add this to your vimrc after the plugin is loaded:[end:Text]
+  [Code = lang: "vim", title: "vimrc", file: "src/samples/tools/lsp/vimrc" !]
+
+  [Title = size: 3, id: "other"]Other editors[end:Title]
+  [Text]Any editor with an LSP client works. Give it:[end:Text]
+  [List]
+    [Item][strong]Command:[end] [hl = text: "arcmoon-lsp --stdio" !] (or [hl = text: "node /path/to/server/cli.js --stdio" !]).[end:Item]
+    [Item][strong]Files:[end] [hl = text: "*.arcm" !], as the language [hl = text: "arcmoon" !].[end:Item]
+    [Item][strong]Project root:[end] the folder with [hl = text: "arcmoon.config.js" !], [hl = text: "package.json" !] or [hl = text: ".git" !].[end:Item]
+    [Item][strong]Colors:[end] turn on semantic tokens; the server sends only standard token types, so every theme colors them.[end:Item]
+  [end:List]
+
+  [Title = id: "init"]The init command[end:Title]
+  [Text][hl = text: "arcmoon-lsp init" !] sets up an editor from files that ship inside the npm package, so you don\'t need to clone anything:[end:Text]
+  [Code = lang: "bash", text: '
+    arcmoon-lsp init                    # asks which editor, where, and what to build
+    arcmoon-lsp init zed                # only asks what is left
+    arcmoon-lsp init zed ./my-folder    # the folder is given, so not asked
+    arcmoon-lsp init zed --yes          # no questions: defaults, nothing built or installed
+    arcmoon-lsp init vim --force        # replace files that are already there
+    arcmoon-lsp --version               # the version
+    arcmoon-lsp --help                  # every command
+  ' !]
+  [List]
+    [Item]Every question has a default, so Enter always works. In CI or a script (no terminal), it uses the defaults and prints the next steps.[end:Item]
+    [Item]It never replaces your files without asking ([hl = text: "--force" !] to allow it), and leaves the rest of a folder like [hl = text: "~/.vim" !] alone.[end:Item]
+    [Item]Commands it would run ([hl = text: "rustup" !], [hl = text: "cargo" !], [hl = text: "code" !]) are shown first. If one is missing, it says how to get it and carries on.[end:Item]
+    [Item]It warns if the [hl = text: "arcmoon-lsp" !] command isn\'t on your PATH.[end:Item]
+  [end:List]
+
+  [Title = id: "errors"]Errors and warnings[end:Title]
+  [Text]Shown as you type, with the compiler\'s own messages, at the exact spot:[end:Text]
+  [List]
+    [Item][strong]Syntax:[end] unclosed strings, code or comments; [hl = text: "[end]" !] that doesn\'t match; unquoted values; a prop written twice; bad [hl = text: "[import]" !] or [hl = text: "[for-each]" !].[end:Item]
+    [Item][strong]Tags and imports:[end] unknown blocks (did you mean …), components that aren\'t imported, import paths that don\'t exist (did you mean …), circular imports, a component that has an error itself, and imports you never use (shown faded).[end:Item]
+    [Item][strong]JavaScript:[end] syntax errors in [hl = text: "${ }$" !] and the runtime rules: [hl = text: "export" !] in runtime code, a build value that isn\'t exported, a statement where a live value goes, a Node.js module in the browser, an npm package not in [hl = text: "bundle" !].[end:Item]
+    [Item][strong]Refs:[end] [hl = text: "defineRef()" !] names with no element (did you mean …), a single ref on two elements, [hl = text: "ref()" !] / [hl = text: "refs()" !] with the wrong kind.[end:Item]
+    [Item][strong]CSS:[end] unknown properties, bad values and broken CSS in [hl = text: "[style]" !], style props and [hl = text: "css." !] props ([hl = text: "css.colr" !] has a quick fix to [hl = text: "css.color" !]).[end:Item]
+    [Item][strong]Files:[end] [hl = text: "[link]" !] stylesheets and [hl = text: "[script = src]" !] files that don\'t exist, [hl = text: "runtime ${ }$" !] in a component\'s [hl = text: "[style]" !].[end:Item]
+  [end:List]
+  [Text]Changing a file re-checks the other open files, so fixing a component clears its error on the pages that use it.[end:Text]
+
+  [Title = id: "completions"]Completions[end:Title]
+  [List]
+    [Item][strong]After [hl = text: "[" !]:[end] [hl = text: "end" !] / [hl = text: "end:name" !] for the open block first, then your imported components, the built-in blocks (as snippets: [hl = text: "for-each = ${ items }$, as: \"item\"]…[end]" !]), then every HTML, SVG and MathML tag.[end:Item]
+    [Item][strong]Props:[end] the attributes of that tag, plus global ones ([hl = text: "class" !], [hl = text: "aria-*" !], [hl = text: "data-*" !]), with their known values ([hl = text: "type: \"" !] suggests [hl = text: "text" !], [hl = text: "email" !] …). Events suggest [hl = text: "runtime ${ () => … }$" !].[end:Item]
+    [Item][strong]Component props:[end] the props the component reads with [hl = text: "ArcMoon.props()" !], written to match their defaults. For this component, typing inside [hl = text: "[Card = " !] suggests [hl = text: "title: \"\"" !], [hl = text: "count: 0" !] and [hl = text: "big: true" !]:[end:Item]
+  [end:List]
+  [Code = title: "Card.arcm", file: "src/samples/tools/lsp/Card.arcm" !]
+  [List]
+    [Item][strong]Import paths:[end] your aliases ([hl = text: "@/" !]), then folders and [hl = text: ".arcm" !] files.[end:Item]
+    [Item][strong]Refs:[end] ref names in [hl = text: "defineRef(\"…\")" !], from the file and the components it uses.[end:Item]
+    [Item][strong]CSS:[end] properties, values (with color swatches), selectors from the class names in your markup, and [hl = text: "var(--…)" !] names. The same works in [hl = text: "css." !] props: [hl = text: "css.col" !] suggests [hl = text: "color" !], and inside its quotes, color values.[end:Item]
+    [Item][strong]JavaScript:[end] your variables from every [hl = text: "${ }$" !] of the file, object fields, imports and npm packages, Node.js in build-time code, the DOM in runtime code, and [hl = text: "ArcMoon." !]. Exported values arrive in runtime code with their build-time types, and event handlers know their event ([hl = text: "onclick" !] gives a [hl = text: "PointerEvent" !]). Parameter hints show while you type a call.[end:Item]
+  [end:List]
+
+  [Title = id: "navigation"]Hover and go to definition[end:Title]
+  [List]
+    [Item][strong]Hover:[end] a tag or attribute (description and an MDN link); a component (its file and props with defaults); an import path (where it leads, aliases resolved, or where it looked if it\'s missing); a prop on a component (which component reads it); a CSS property; the type of any JavaScript name.[end:Item]
+    [Item][strong]Go to definition:[end] a component or its import path opens the [hl = text: ".arcm" !] file; [hl = text: "[link]" !] / [hl = text: "[script]" !] paths open the file; [hl = text: "defineRef(\"btn\")" !] jumps to its element; JavaScript names jump to their declaration, even in another [hl = text: "${ }$" !] block, a local [hl = text: ".js" !] file or npm types. An exported value in runtime code jumps to its [hl = text: "export" !].[end:Item]
+  [end:List]
+
+  [Title = id: "fixes"]Quick fixes[end:Title]
+  [List]
+    [Item][strong]Add the missing import[end] for [hl = text: "[Card]" !] when a [hl = text: "Card.arcm" !] exists in the project, using your alias when one fits ([hl = text: "@/components/Card.arcm" !]).[end:Item]
+    [Item][strong]Did you mean:[end] [hl = text: "[dvi]" !] → [hl = text: "[div]" !], [hl = text: "defineRef(\"my-bnt\")" !] → [hl = text: "\"my-btn\"" !], [hl = text: "\"./Crad.arcm\"" !] → [hl = text: "\"./Card.arcm\"" !].[end:Item]
+    [Item][strong]Quote an unquoted value.[end][end:Item]
+  [end:List]
+
+  [Title = id: "colors"]Colors[end:Title]
+  [Text]The server colors all four languages the same way in every editor, with standard token types your theme already knows:[end:Text]
+  [List]
+    [Item][strong]Markup:[end] HTML tags and components in different colors, [hl = text: "[end]" !] and built-ins as keywords, prop keys, [hl = text: "arcm-*" !] directives, [hl = text: "--" !] props, strings, numbers, comments, escapes, and the [hl = text: "${" !] / [hl = text: "}$" !] markers.[end:Item]
+    [Item][strong]JavaScript:[end] TypeScript\'s own coloring: variables, functions, parameters, properties and classes, with declarations, [hl = text: "const" !] names and built-ins ([hl = text: "Math" !], [hl = text: "document" !]) marked.[end:Item]
+    [Item][strong]CSS:[end] selectors (tag, class, id, pseudo), properties, values, numbers, colors and [hl = text: "var(--…)" !].[end:Item]
+  [end:List]
+
+  [Title = id: "helpers"]Editor helpers[end:Title]
+  [List]
+    [Item][strong]Matching [hl = text: "[end]" !][end] highlighted with its block, from either side, even while the file doesn\'t parse.[end:Item]
+    [Item][strong]Folding:[end] blocks, multi-line code, [hl = text: "### ###" !] comments, and a run of imports.[end:Item]
+    [Item][strong]Outline:[end] the block tree, with [hl = text: "#id .class" !], refs, components, import paths and loops.[end:Item]
+    [Item][strong]Formatting[end] (only when you run Format Document): CSS in [hl = text: "[style]" !] and multi-line JavaScript blocks, with Prettier, following your editor\'s tab size and a project [hl = text: ".prettierrc" !]. ArcMoon markup itself is left as written.[end:Item]
+  [end:List]
+
+  [Title = id: "config"]Your project\'s config[end:Title]
+  [Text]The server reads [hl = text: "arcmoon.config.js" !] from the project root, without running it: [hl = text: "importAliases" !] (for paths, completions and go to definition) and [hl = text: "bundle" !] (for the runtime import check). Only plain values are understood, like [hl = text: "{ \"@\": \"./src\" }" !]. A change to the config re-checks the open files.[end:Text]
+
+  [Title = id: "how"]How it works[end:Title]
+  [Text]
+    For each [hl = text: ".arcm" !] file, the server builds hidden documents, one per language: the markup, all the
+    [hl = text: "${ }$" !] code as one module with Node.js types, all the runtime code as one module with browser types, and all
+    the CSS. TypeScript and VS Code\'s CSS service answer questions about them, and every answer is mapped back to the right
+    spot in your file. ArcMoon\'s own lexer and parser read the markup, so the server sees code exactly the way the compiler does.
+  [end:Text]
+
+  [Title = id: "limits"]Limits[end:Title]
+  [List]
+    [Item]One syntax error shows at a time: the parser stops at the first.[end:Item]
+    [Item]No type errors: ArcMoon code is plain JavaScript.[end:Item]
+    [Item]Some checks only [hl = text: "arcm build" !] can do, because they need the built page: page styles that also style a component, and refs no code uses.[end:Item]
+    [Item][hl = text: "arcm-syntax" !] doesn\'t color [hl = text: "arcm-raw" !] bodies yet.[end:Item]
+  [end:List]
+
+  [Title = id: "troubleshooting"]Troubleshooting[end:Title]
+  [List]
+    [Item][strong]No colors in Zed:[end] add [hl = text: "\"semantic_tokens\": \"full\"" !] for ArcMoon in settings.json.[end:Item]
+    [Item][strong]The server doesn\'t start[end] (Zed, Neovim, Vim): check [hl = text: "arcmoon-lsp --version" !] in a terminal. If it\'s not found, install it with [hl = text: "npm install -g arcmoon-lsp" !] and make sure npm\'s global folder is on your PATH.[end:Item]
+    [Item][strong]Imports with [hl = text: "@/" !] show errors:[end] open the project folder (the one with [hl = text: "arcmoon.config.js" !]), not a subfolder.[end:Item]
+  [end:List]
+[end:Tool]

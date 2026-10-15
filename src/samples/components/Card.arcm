@@ -1,0 +1,4 @@
+${ const { title } = ArcMoon.props(); }$
+[div = class: "card"]
+  [h3]${ title }$[end]
+[end]

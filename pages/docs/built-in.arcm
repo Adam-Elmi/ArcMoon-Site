@@ -1,0 +1,99 @@
+# ###################
+# Docs: Built-in blocks
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "built-in"]
+  [Text]Four blocks are ArcMoon\'s own. They do a job while the page is built and never become an HTML tag:[end:Text]
+  [List]
+    [Item][hl = text: "[doctype!]" !]: writes [hl = text: "<!doctype html>", selectColor: 1 !].[end:Item]
+    [Item][hl = text: "[for-each]" !]: repeats its body for each item of a list.[end:Item]
+    [Item][hl = text: "[import]" !]: loads a component from another file.[end:Item]
+    [Item][hl = text: "[slot]" !]: marks where a component puts the content it is given.[end:Item]
+  [end:List]
+
+  [Title = id: "doctype"]\[doctype!][end:Title]
+  [Text]Tells the browser the page is modern HTML. Put it before the page\'s [hl = text: "[html]" !]:[end:Text]
+  [Code = output: true, text: '
+    [doctype!]
+    [html = lang: "en"]
+      [head][title]Home[end][end]
+      [body][h1]Home[end][end]
+    [end]
+  ' !]
+  [List]
+    [Item]Any case works: [hl = text: "[DOCTYPE!]" !] is the same.[end:Item]
+    [Item]It takes no props and no body, so it is always self-closing.[end:Item]
+    [Item]Comments and imports above it are fine: they write nothing.[end:Item]
+    [Item]Components and partial pages don\'t need it; only the full page does, once.[end:Item]
+  [end:List]
+  [Code = lang: "log", text: '
+    ✗ [doctype] takes no props or body; write [doctype!]
+  ' !]
+
+  [Title = id: "for-each"]\[for-each][end:Title]
+  [Text]Writes its body once for each item. The list comes from [hl = text: "${ }$" !], [hl = text: "as" !] names the item, and [hl = text: "i" !] is its position:[end:Text]
+  [Code = output: true, text: '
+    ${ const types = ["string", "number", "boolean"]; }$
+    [ul]
+      [for-each = ${ types }$, as: "type"]
+        [li]${ i + 1 }$. [code]${ type }$[end][end]
+      [end]
+    [end]
+  ' !]
+  [List]
+    [Item]Props: the list first, then [hl = text: "as: \"name\"" !] (quoted). Without [hl = text: "as" !], the item is [hl = text: "value" !].[end:Item]
+    [Item]It needs a body and an [hl = text: "[end]" !]: it can\'t be self-closing.[end:Item]
+    [Item]It runs while building. To repeat elements in the browser, see [Link = text: "Lists that change", href: "reactivity.html#lists" !].[end:Item]
+  [end:List]
+  [Code = lang: "log", text: '
+    ✗ [for-each] needs an array first: [for-each = ${ items }$, as: "item"]
+    ✗ [for-each] needs a body and [end]
+    ✗ unquoted value n for prop "as"; write "n" (only true / false and numbers may be unquoted)
+  ' !]
+  [Text]More in [Link = text: "Loops", href: "loops.html" !]: objects, data from files, nested loops.[end:Text]
+
+  [Title = id: "import"]\[import][end:Title]
+  [Text]Loads a component and names it. Then the name works like a block:[end:Text]
+  [Code = text: '
+    [import = Card: "./Card.arcm" !]
+    [Card = title: "Hello" !]
+  ' !]
+  [List]
+    [Item]Imports come first in the file, before any markup.[end:Item]
+    [Item]Always self-closing, and only for [hl = text: ".arcm" !] files.[end:Item]
+    [Item]The path is relative to the file, or uses an alias like [hl = text: "@/components/Card.arcm" !].[end:Item]
+  [end:List]
+  [Code = lang: "log", text: '
+    ✗ [import] must be at the top of the file
+    ✗ [import] must be self-closing: [import = Name: "./file.arcm" !]
+    ✗ [import] only loads .arcm files, got "./util.js"
+    ✗ "Card" is imported twice
+  ' !]
+  [Text]More in [Link = text: "Importing", href: "components.html#import" !] and [Link = text: "Import aliases", href: "components.html#aliases" !].[end:Text]
+
+  [Title = id: "slot"]\[slot][end:Title]
+  [Text]Used inside a component: the content the caller puts in the component\'s body goes where [hl = text: "[slot!]" !] is. [hl = text: "[slot]…[end]" !] holds fallback content for when there is none:[end:Text]
+  [Code = title: "Card.arcm", file: "src/samples/built-in/Card.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/built-in/use-card.arcm" !]
+  [List]
+    [Item]Self-closing ([hl = text: "[slot!]" !]) for no fallback, or with a body for a fallback.[end:Item]
+    [Item]It belongs in components. In a page there is no caller, so it only writes its fallback.[end:Item]
+    [Item]There is one kind of slot; pass other areas as props.[end:Item]
+  [end:List]
+  [Text]More in [Link = text: "Slots", href: "components.html#slots" !].[end:Text]
+
+  [Title = id: "html-with-extras"]HTML blocks with extra work[end:Title]
+  [Text]These are normal HTML elements, but ArcMoon does more with them while building:[end:Text]
+  [List]
+    [Item][hl = text: "[style]…[end]" !]: its CSS is bundled into the page, and in a component it is scoped to that component. See [Link = text: "Styles", href: "styles.html" !].[end:Item]
+    [Item][hl = text: "[script = src: \"./app.js\" !]" !]: a local script file joins the page\'s bundled JavaScript, like runtime code. See [Link = text: "Runtime code", href: "runtime.html" !].[end:Item]
+  [end:List]
+[end:Docs]

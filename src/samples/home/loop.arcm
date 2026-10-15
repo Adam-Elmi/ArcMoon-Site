@@ -1,0 +1,11 @@
+${
+  const menu = [
+    { name: "Espresso", price: 2.5 },
+    { name: "Flat white", price: 3.8 }
+  ];
+}$
+[ul = class: "menu"]
+  [for-each = ${ menu }$, as: "item"]
+    [li]${ item.name }$ · $${ item.price.toFixed(2) }$[end]
+  [end]
+[end]

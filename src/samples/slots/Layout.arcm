@@ -1,0 +1,4 @@
+[import = Panel: "./Panel.arcm" !]
+[main]
+  [Panel = title: "Page"][slot!][end:Panel]
+[end]

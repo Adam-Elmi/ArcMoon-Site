@@ -1,0 +1,4 @@
+[import = Button: "./Button.arcm" !]
+[Button = label: "Save" !]
+[Button = label: "Cancel", kind: "ghost" !]
+[Button!]

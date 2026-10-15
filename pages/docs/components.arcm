@@ -1,0 +1,318 @@
+# ###################
+# Docs: Components
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "components"]
+  [Title = id: "what"]What a component is[end:Title]
+  [Text]A component is an [hl = text: ".arcm" !] file you use like a block. Write it once, use it anywhere, with different props each time:[end:Text]
+  [Code = title: "Button.arcm", file: "src/samples/components/Button.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/components/use-button.arcm" !]
+  [List]
+    [Item]A component is a normal [hl = text: ".arcm" !] file: markup, [hl = text: "${ }$" !], [hl = text: "runtime ${ }$" !] and [hl = text: "[style]" !] all work in it.[end:Item]
+    [Item]Its output takes the place of the block that uses it. The HTML has no trace of the component itself.[end:Item]
+  [end:List]
+
+  [Title = id: "import"]Importing[end:Title]
+  [Text][hl = text: "[import]" !] loads a component file and gives it a name you can use as a block in this file:[end:Text]
+  [Code = text: '
+    [import = Card: "./Card.arcm" !]
+    #        ↑ name  ↑ path to the file
+
+    [Card!]   # use it like a block, by that name
+  ' !]
+
+  [Title = size: 3, id: "import-paths"]Paths[end:Title]
+  [Text]A path starts from the folder of the file that has the [hl = text: "[import]" !]. With this project:[end:Text]
+  [Code = lang: "text", title: "my-site", text: '
+    pages/
+      index.arcm
+      blog/
+        post.arcm
+    src/
+      components/
+        Card.arcm
+        Badge.arcm
+  ' !]
+  [Code = text: '
+    # in pages/index.arcm
+    [import = Card: "../src/components/Card.arcm" !]
+
+    # in pages/blog/post.arcm (one folder deeper, so one more ../)
+    [import = Card: "../../src/components/Card.arcm" !]
+
+    # in src/components/Card.arcm (same folder)
+    [import = Badge: "./Badge.arcm" !]
+  ' !]
+  [List]
+    [Item][hl = text: "./" !] is the same folder, [hl = text: "../" !] the folder above.[end:Item]
+    [Item]Write the [hl = text: ".arcm" !] ending: [hl = text: "\"./Card\"" !] is an error.[end:Item]
+    [Item]A path starting with [hl = text: "/" !] is a full path on your computer, not the project folder. Use a relative path or an alias instead.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "import-rules"]Rules[end:Title]
+  [List]
+    [Item][strong]The name is yours.[end] Start it with a capital letter, so it reads as a component: [hl = text: "[Card]" !], not [hl = text: "[card]" !].[end:Item]
+    [Item][strong]At the top.[end] Imports come before any markup.[end:Item]
+    [Item][strong]Self-closing.[end] Always end with [hl = text: "!" !].[end:Item]
+    [Item][strong]Only [hl = text: ".arcm" !] files.[end] For [hl = text: ".js" !] or [hl = text: ".json" !], use JavaScript [hl = text: "import" !] inside [hl = text: "${ }$" !].[end:Item]
+    [Item][strong]One name, one component.[end] The same name can\'t be imported twice. The same file can be imported under two names.[end:Item]
+    [Item][strong]Per file.[end] Each file imports what it uses. A component used inside another component needs its own [hl = text: "[import]" !], even if the page imported it.[end:Item]
+  [end:List]
+  [Code = lang: "log", text: '
+    ✗ [import] must be at the top of the file
+    ✗ [import] must be self-closing: [import = Name: "./file.arcm" !]
+    ✗ [import] only loads .arcm files, got "./Card"
+    ✗ "Card" is imported twice
+  ' !]
+
+  [Title = size: 3, id: "import-packages"]Components from npm packages[end:Title]
+  [Text]A path that doesn\'t start with [hl = text: "." !] or [hl = text: "/" !] loads from [hl = text: "node_modules" !], like JavaScript imports:[end:Text]
+  [Code = text: '
+    [import = Button: "arcm-ui/Button.arcm" !]   # node_modules/arcm-ui/Button.arcm
+  ' !]
+  [Text]Code from a package can run on your computer when you build, so ArcMoon asks you to trust it first. Review it, then trust it once:[end:Text]
+  [Code = lang: "log", text: '
+    ⚠ Template "arcm-ui" is not trusted. It would:
+        (no code)
+      Review it, then run "arcmoon trust arcm-ui".
+  ' !]
+  [Code = lang: "bash", text: '
+    arcm trust pages/index.arcm   # trusts the packages this page uses, saved in arcmoon.trust.json
+  ' !]
+
+  [Title = id: "aliases"]Import aliases[end:Title]
+  [Text]Deep folders make long paths, and the path changes with every folder level. An alias is a short name for a folder, so the same path works from any file. Set it in [hl = text: "arcmoon.config.js" !]:[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default {
+      importAliases: {
+        "@": "./src",
+        "~ui": "./src/components"
+      }
+    };
+  ' !]
+  [Text]Now every file can use the same path, however deep it is:[end:Text]
+  [Code = text: '
+    # in pages/index.arcm and in pages/blog/post.arcm alike
+    [import = Card: "@/components/Card.arcm" !]   # → ./src/components/Card.arcm
+    [import = Badge: "~ui/Badge.arcm" !]          # → ./src/components/Badge.arcm
+  ' !]
+  [List]
+    [Item]An alias is replaced at the start of the path: [hl = text: "@/components/Card.arcm" !] becomes [hl = text: "./src/components/Card.arcm" !]. Write the [hl = text: "/" !] after it.[end:Item]
+    [Item]Targets start from the project folder, where [hl = text: "arcmoon.config.js" !] is. Run [hl = text: "arcm" !] in that folder: it only reads the config from where you run it.[end:Item]
+    [Item]Any name works; [hl = text: "@" !] is common. You can have as many aliases as you like.[end:Item]
+    [Item]From JavaScript, pass the same option: [hl = text: "new ArcMoon({ src, importAliases: { \"@\": \"./src\" } })" !].[end:Item]
+  [end:List]
+  [Text]If [hl = text: "arcm" !] can\'t find the config, the alias isn\'t known, and the path is read as a package:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ can\'t read "@/components/Card.arcm" (/my-site/pages/node_modules/@/components/Card.arcm): ENOENT: no such file or directory
+  ' !]
+  [Text]Run [hl = text: "arcm" !] from the project folder, or check the alias name.[end:Text]
+
+  [Title = id: "props"]Props[end:Title]
+  [Text]A component reads the props it was given with [hl = text: "ArcMoon.props()" !], at the top of its file. Give each one a default for when it isn\'t passed:[end:Text]
+  [Code = title: "Profile.arcm", file: "src/samples/components/Profile.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/components/use-profile.arcm" !]
+  [List]
+    [Item]Any value works: text, numbers, [hl = text: "true" !] / [hl = text: "false" !], and arrays or objects through [hl = text: "${ }$" !] ([hl = text: "skills" !] above).[end:Item]
+    [Item][hl = text: "role = \"Member\"" !] is a default: Elmi didn\'t pass a role, so he gets [hl = text: "Member" !].[end:Item]
+    [Item]Values without a name come by position: [hl = text: "[Tag = \"new\", 3 !]" !] gives [hl = text: "ArcMoon.props()[0]" !] = [hl = text: "\"new\"" !] and [hl = text: "[1]" !] = [hl = text: "3" !].[end:Item]
+    [Item]Call [hl = text: "ArcMoon.props()" !] at the top of the file. Inside an element it returns that element\'s props instead.[end:Item]
+  [end:List]
+
+  [Title = id: "pass-through"]Props that pass through[end:Title]
+  [Text]Props the component doesn\'t read go onto its outer element. So [hl = text: "id" !], [hl = text: "data-" !], [hl = text: "aria-" !] and [hl = text: "css." !] props work on any component, with no extra code:[end:Text]
+  [Code = title: "Card.arcm", file: "src/samples/components/Card.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/components/use-pass.arcm" !]
+  [List]
+    [Item][hl = text: "title" !] is read by the component, so it stays data. The others are not, so they land on the [hl = text: "<div>" !].[end:Item]
+    [Item]A prop counts as read when the component names it: [hl = text: "const { title } = ArcMoon.props()" !]. If it keeps the whole object ([hl = text: "const p = ArcMoon.props()" !]), nothing passes through.[end:Item]
+    [Item]They go to the first element. A passed [hl = text: "class" !] is added to the element\'s own: [hl = text: "[Card = class: \"big\" !]" !] gives [hl = text: "class=\"card big\"" !]. A passed [hl = text: "style" !] comes after the element\'s own, so its rules win.[end:Item]
+    [Item]Any other attribute the element already has keeps its own value, and ArcMoon warns: [hl = text: "[Card] sets id on its <div> already, so the id passed to it is ignored" !].[end:Item]
+  [end:List]
+
+  [Title = id: "slots"]Slots[end:Title]
+  [Text]Props pass small values. To pass a piece of markup, give the component a body. The component decides where that body goes with [hl = text: "[slot!]" !]: a hole that the caller fills.[end:Text]
+  [Code = title: "Box.arcm", file: "src/samples/slots/Box.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/slots/use-box.arcm" !]
+  [List]
+    [Item][strong]1.[end] The page uses [hl = text: "[Box]" !] with a body: the [hl = text: "[p]" !].[end:Item]
+    [Item][strong]2.[end] ArcMoon builds [hl = text: "Box.arcm" !], and where it finds [hl = text: "[slot!]" !], it puts that body.[end:Item]
+    [Item][strong]3.[end] The result is the box with the page\'s paragraph inside.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "slot-anything"]Anything can go in the slot[end:Title]
+  [Text]The body is normal markup: elements, other components, [hl = text: "${ }$" !], [hl = text: "[for-each]" !], runtime code:[end:Text]
+  [Code = title: "Panel.arcm", file: "src/samples/slots/Panel.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/slots/use-anything.arcm" !]
+
+  [Title = size: 3, id: "slot-fallback"]Fallback content[end:Title]
+  [Text][hl = text: "[slot]…[end]" !] holds content to show when the caller passes no body. [hl = text: "Panel.arcm" !] above has one:[end:Text]
+  [Code = title: "index.arcm", output: true, file: "src/samples/slots/use-fallback.arcm" !]
+  [List]
+    [Item]A body shows the body. Self-closing ([hl = text: "[Panel !]" !]) or an empty body ([hl = text: "[Panel][end]" !]) shows the fallback.[end:Item]
+    [Item]A body with only a space is not empty: it shows the space, not the fallback.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "slot-owner"]The body belongs to the caller[end:Title]
+  [Text]The body is written in the page, so it uses the page\'s variables and the page\'s styles, not the component\'s:[end:Text]
+  [Code = title: "Scoped.arcm", file: "src/samples/slots/Scoped.arcm" !]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/slots/use-scope.arcm" !]
+  [List]
+    [Item][hl = text: "${ name }$" !] in the body reads the page\'s [hl = text: "name" !], even though the component has its own.[end:Item]
+    [Item]The component\'s [hl = text: "p { color: crimson; }" !] doesn\'t reach the page\'s [hl = text: "<p>" !]: it has no [hl = text: "data-a-…" !] attribute. Style it from the page.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "slot-where"]Where the slot goes[end:Title]
+  [Text]A slot can go anywhere in the component, even in the middle of text:[end:Text]
+  [Code = title: "Quote.arcm", file: "src/samples/slots/Quote.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/slots/use-middle.arcm" !]
+  [Text]Each [hl = text: "[slot!]" !] writes the body again, so two slots show it twice.[end:Text]
+
+  [Title = size: 3, id: "slot-pass"]Passing a slot on[end:Title]
+  [Text]A component can put its own slot inside another component\'s body. The page\'s content travels down both:[end:Text]
+  [Code = title: "Layout.arcm", file: "src/samples/slots/Layout.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/slots/use-pass.arcm" !]
+
+  [Title = size: 3, id: "slot-areas"]More than one area[end:Title]
+  [Text]There is one kind of slot: no named slots. For a second area, like a header, pass it as a prop. Text works, and [hl = text: "{ raw }" !] passes HTML:[end:Text]
+  [Code = title: "Card.arcm", file: "src/samples/slots/Card.arcm" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/slots/use-areas.arcm" !]
+  [Text]For bigger areas, split the component: a [hl = text: "Card" !] whose body holds a [hl = text: "CardHeader" !] and a [hl = text: "CardBody" !], each with its own slot.[end:Text]
+
+  [Title = id: "layouts"]Layouts[end:Title]
+  [Text]A layout is a component that holds the whole page frame. Every page uses it and puts its own content in the slot:[end:Text]
+  [Code = title: "Layout.arcm", file: "src/samples/components/Layout.arcm" !]
+  [Code = title: "about.arcm", output: true, file: "src/samples/components/use-layout.arcm" !]
+  [Text]Change the header once in [hl = text: "Layout.arcm" !], and every page gets it on the next build.[end:Text]
+
+  [Title = id: "styles"]Styles[end:Title]
+  [Text]A [hl = text: "[style]" !] in a component only styles that component\'s own elements. The same class on the page is not touched:[end:Text]
+  [Code = title: "Note.arcm", file: "src/samples/components/Note.arcm" !]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/components/use-note.arcm" !]
+  [List]
+    [Item]ArcMoon adds an attribute like [hl = text: "data-a-1aqzgr0" !] to the component\'s elements and its CSS, so the rules only match there.[end:Item]
+    [Item]The CSS is written once, however many times the component is used. More in [Link = text: "Styles", href: "styles.html" !].[end:Item]
+  [end:List]
+
+  [Title = id: "runtime"]Runtime code[end:Title]
+  [Text]Each use of a component runs its own copy of its runtime code, with its own signals and refs:[end:Text]
+  [Code = title: "Counter.arcm", text: '
+    ${ const { start = 0 } = ArcMoon.props(); export const initial = start; }$
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(initial);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]runtime ${ count() }$[end]
+  ' !]
+  [Code = title: "index.arcm", text: '
+    [import = Counter: "./Counter.arcm" !]
+    [Counter = start: 5 !]    # counts from 5
+    [Counter = start: 10 !]   # counts from 10, on its own
+  ' !]
+  [List]
+    [Item]Props reach runtime code through [hl = text: "export" !]: read them in [hl = text: "${ }$" !], export what the browser needs.[end:Item]
+    [Item]A page\'s [hl = text: "defineRef()" !] also finds refs inside the components it uses, so the page can reach a component\'s button.[end:Item]
+    [Item]A component can\'t see its page\'s runtime variables. Pass values as props instead.[end:Item]
+  [end:List]
+
+  [Title = id: "mistakes"]Mistakes[end:Title]
+  [Text]Each message below stops the build (✗) or warns (⚠). Here is what causes it and how to fix it.[end:Text]
+
+  [Title = size: 3, id: "wrong-path"]A path that points nowhere[end:Title]
+  [Code = lang: "log", text: '
+    ✗ can\'t read "./Card.arcm" (/my-site/pages/Card.arcm): ENOENT: no such file or directory
+  ' !]
+  [Text]The path is relative to the file that has the [hl = text: "[import]" !], not to where you run [hl = text: "arcm build" !]. The message shows the full path ArcMoon tried:[end:Text]
+  [Code = text: '
+    # pages/index.arcm, with Card.arcm in src/components/
+
+    # ✗ looks for pages/Card.arcm
+    [import = Card: "./Card.arcm" !]
+
+    # ✓ from pages/, go up one folder
+    [import = Card: "../src/components/Card.arcm" !]
+
+    # ✓ or with the "@" alias for ./src
+    [import = Card: "@/components/Card.arcm" !]
+  ' !]
+
+  [Title = size: 3, id: "circular"]Two components that import each other[end:Title]
+  [Code = lang: "log", text: '
+    ✗ circular import: Header.arcm → Menu.arcm → Header.arcm
+  ' !]
+  [Text]A component would contain itself forever. Move the part both need into a third component, and import it from both:[end:Text]
+  [Code = text: '
+    # ✗ Header.arcm uses Menu, and Menu.arcm uses Header for its logo
+    # Header.arcm
+    [import = Menu: "./Menu.arcm" !]
+    [header][Menu!][end]
+    # Menu.arcm
+    [import = Header: "./Header.arcm" !]
+    [nav][Header!][end]
+
+    # ✓ the logo gets its own component
+    # Logo.arcm
+    [a = href: "/"]My site[end]
+    # Header.arcm
+    [import = Logo: "./Logo.arcm" !]
+    [import = Menu: "./Menu.arcm" !]
+    [header][Logo!][Menu!][end]
+    # Menu.arcm
+    [import = Logo: "./Logo.arcm" !]
+    [nav][Logo!][end]
+  ' !]
+
+  [Title = size: 3, id: "undefined-prop"]A prop that wasn\'t passed[end:Title]
+  [Code = lang: "log", text: '
+    ⚠ Card.arcm:2:7  ${ title }$ is undefined (prop "title" wasn\'t passed)
+  ' !]
+  [Text]The component reads [hl = text: "title" !], but the caller didn\'t give one, so it prints nothing. Pass it, or give it a default:[end:Text]
+  [Code = text: '
+    # Card.arcm
+    # ✗ empty when no title is passed
+    ${ const { title } = ArcMoon.props(); }$
+    [h2]${ title }$[end]
+
+    # ✓ a default for when it is missing
+    ${ const { title = "Untitled" } = ArcMoon.props(); }$
+    [h2]${ title }$[end]
+  ' !]
+
+  [Title = size: 3, id: "props-inside"]Reading props inside an element[end:Title]
+  [Code = lang: "log", text: '
+    ⚠ Card.arcm:1:7  ArcMoon.props() inside [h2] returns the [h2]\'s props, which have no "title"; for the component\'s props, call it at the top of the file
+  ' !]
+  [Text]Inside an element, [hl = text: "ArcMoon.props()" !] gives that element\'s own props. Read the component\'s props once, at the top:[end:Text]
+  [Code = text: '
+    # Card.arcm
+    # ✗ the [h2]\'s props, not the component\'s
+    [h2]${ ArcMoon.props().title }$[end]
+
+    # ✓ read at the top, use below
+    ${ const { title } = ArcMoon.props(); }$
+    [h2]${ title }$[end]
+  ' !]
+
+  [Title = size: 3, id: "not-imported"]A component that isn\'t imported[end:Title]
+  [Code = lang: "log", text: '
+    ⚠ page.arcm:1:1  [Card] is not imported; it is written as <card>. Did you forget [import = Card: "./Card.arcm" !]?
+  ' !]
+  [Text]Without an [hl = text: "[import]" !], ArcMoon doesn\'t know [hl = text: "[Card]" !] is a component, so it writes an unknown [hl = text: "<card>" !] tag. Import it in every file that uses it, even if the page already did:[end:Text]
+  [Code = text: '
+    # ✗ no import in this file
+    [Card = title: "Hi" !]
+
+    # ✓ right
+    [import = Card: "./Card.arcm" !]
+    [Card = title: "Hi" !]
+  ' !]
+
+[end:Docs]

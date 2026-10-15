@@ -1,0 +1,4 @@
+[import = UserCard: "./UserCard.arcm" !]
+[UserCard = name: "Adam", role: "admin"]
+  [p]Joined in 2026.[end]
+[end:UserCard]

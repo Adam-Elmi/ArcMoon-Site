@@ -1,0 +1,173 @@
+# ###################
+# Docs: Styles
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "styles"]
+  [Title = id: "ways"]Three ways to style[end:Title]
+  [List]
+    [Item][hl = text: "[style]…[end]" !]: a block of CSS. Global in a page, scoped in a component.[end:Item]
+    [Item][hl = text: "css.name" !] props: one CSS property on one element, like [hl = text: "css.color: \"red\"" !].[end:Item]
+    [Item][hl = text: "--name" !] props: a CSS variable on one element, read by your CSS with [hl = text: "var(--name)" !].[end:Item]
+  [end:List]
+
+  [Title = id: "style-block"]\[style] blocks[end:Title]
+  [Text]The body of a [hl = text: "[style]" !] is CSS. ArcMoon only reads [hl = text: "${ }$" !] in it; everything else is plain CSS:[end:Text]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/styles/page-style.arcm" !]
+  [List]
+    [Item][hl = text: "#ccc" !] and [hl = text: "#main" !] are CSS, not comments. [hl = text: "input[type=\"text\"]" !] is a selector, not a block.[end:Item]
+    [Item][hl = text: "${ }$" !] values are written into the CSS, like [hl = text: "${ theme.brand }$" !] from a JSON file.[end:Item]
+    [Item]Backslashes are kept, so CSS escapes like [hl = text: "\"\\2014\"" !] work. Only [hl = text: "\\[end" !] and [hl = text: "\\${" !] are special.[end:Item]
+    [Item]The CSS is minified and moved into one [hl = text: "<style>" !] in the [hl = text: "<head>" !].[end:Item]
+  [end:List]
+  [Text]A [hl = text: "[style]" !] in a [strong]page[end] is global: it styles the whole page, components included.[end:Text]
+
+  [Title = id: "scoped"]Scoped component styles[end:Title]
+  [Text]A [hl = text: "[style]" !] in a [strong]component[end] only styles that component\'s own elements:[end:Text]
+  [Code = title: "Card.arcm", file: "src/samples/styles/Card.arcm" !]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/styles/use-card.arcm" !]
+  [List]
+    [Item]ArcMoon adds an attribute like [hl = text: "data-a-rvah5h" !] to the component\'s elements and to its selectors, so [hl = text: "h2 { color: tomato }" !] only matches the card\'s [hl = text: "<h2>" !], not the page\'s.[end:Item]
+    [Item]The attribute comes from the file, so it is the same on every build.[end:Item]
+    [Item]The CSS is written once, however many times the component is used, and only on pages that use it.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "scope-rules"]How far scoping reaches[end:Title]
+  [List]
+    [Item][strong]It keeps the component\'s CSS in.[end] It doesn\'t keep the page\'s CSS out: resets, fonts and theme colors still reach inside.[end:Item]
+    [Item][strong]The component wins a tie.[end] When a page rule and a component rule set the same property, the component\'s rule is more specific.[end:Item]
+    [Item][strong]Slot content is the caller\'s.[end] The [hl = text: "<p>" !] above came from the page, so the card\'s CSS doesn\'t style it.[end:Item]
+    [Item][strong]Child components are their own.[end] A parent component\'s CSS doesn\'t reach inside a component it uses.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "global"]:global, @keyframes and @media[end:Title]
+  [Code = title: "Spinner.arcm", file: "src/samples/styles/Spinner.arcm" !]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/styles/use-spinner.arcm" !]
+  [List]
+    [Item][hl = text: ":global(.dark)" !] leaves that part unscoped: [hl = text: ".dark" !] can be on the page\'s [hl = text: "<body>" !].[end:Item]
+    [Item][hl = text: "@keyframes spin" !] gets the component\'s suffix, and the [hl = text: "animation" !] follows, so two components can both have a [hl = text: "spin" !].[end:Item]
+    [Item]Rules inside [hl = text: "@media" !] and [hl = text: "@supports" !] are scoped too.[end:Item]
+  [end:List]
+
+  [Title = id: "css-props"]css. props[end:Title]
+  [Text]A prop starting with [hl = text: "css." !] sets one CSS property on that element. No [hl = text: "[style]" !] block needed:[end:Text]
+  [Code = output: true, text: '
+    [p = css.color: "white", css.background: "black", css.font-size: "18px"]Hello[end]
+    [img = src: "logo.svg", width: 100, css.width: "50%" !]
+  ' !]
+  [List]
+    [Item]Names are CSS names, with dashes: [hl = text: "css.font-size" !], not [hl = text: "css.fontSize" !].[end:Item]
+    [Item][hl = text: "width" !] stays the attribute, [hl = text: "css.width" !] is the CSS property. You choose each time.[end:Item]
+    [Item]Numbers are written as they are: [hl = text: "css.opacity: 0.5" !]. [hl = text: "false" !] leaves the property out.[end:Item]
+    [Item]On a component, [hl = text: "css." !] props go onto its outer element.[end:Item]
+  [end:List]
+
+  [Title = id: "variables"]--name props[end:Title]
+  [Text]A prop starting with [hl = text: "--" !] sets a CSS variable on that element. The CSS stays the same; each element brings its own value:[end:Text]
+  [Code = title: "Progress.arcm", file: "src/samples/styles/Progress.arcm" !]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/styles/use-progress.arcm" !]
+  [List]
+    [Item]One stylesheet, two widths: each [hl = text: ".fill" !] reads its own [hl = text: "--progress" !].[end:Item]
+    [Item]Like any CSS variable, children inherit it: set it on a parent, use it inside.[end:Item]
+    [Item]This is how a component\'s style differs per use: its [hl = text: "[style]" !] is shared, so pass the difference as a [hl = text: "--" !] prop.[end:Item]
+  [end:List]
+  [Text][hl = text: "style:" !], [hl = text: "css." !] and [hl = text: "--" !] props combine in the order written: [hl = text: "[div = style: \"margin: 0\", css.color: \"red\", --x: \"1\"]" !] gives [hl = text: "style=\"margin: 0; color: red; --x: 1\"" !].[end:Text]
+
+  [Title = id: "live"]Styles that change[end:Title]
+  [Text][hl = text: "css." !] and [hl = text: "--" !] props take live values, so styles can follow signals. Drag the sliders:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const size = signal(18);
+      const hue = signal(350);
+    }$
+    [input = type: "range", min: 12, max: 40, value: "18", oninput: runtime ${ (e) => size(Number(e.target.value)) }$ !]
+    [input = type: "range", min: 0, max: 360, value: "350", oninput: runtime ${ (e) => hue(Number(e.target.value)) }$ !]
+    [p = css.font-size: runtime ${ size() + "px" }$, --hue: runtime ${ hue() }$]Live style[end]
+    [style]
+      p { color: hsl(var(--hue) 70% 45%); }
+    [end]
+  ' !]
+  [List]
+    [Item][hl = text: "css.font-size" !] follows [hl = text: "size" !]; [hl = text: "--hue" !] follows [hl = text: "hue" !], and the CSS reads it.[end:Item]
+    [Item]A page\'s [hl = text: "[style]" !] can hold [hl = text: "runtime ${ }$" !] too: the whole [hl = text: "<style>" !] updates when it changes.[end:Item]
+    [Item]A component\'s [hl = text: "[style]" !] can\'t: one stylesheet is shared by every use. Use a [hl = text: "--" !] prop instead.[end:Item]
+  [end:List]
+
+  [Title = id: "files"]Stylesheets and files[end:Title]
+  [Text]ArcMoon bundles each page\'s CSS into one stylesheet, in this order:[end:Text]
+  [List]
+    [Item][strong]1.[end] Local CSS files: [hl = text: "[link = rel: \"stylesheet\", href: \"./base.css\" !]" !], with their [hl = text: "@import" !]s followed.[end:Item]
+    [Item][strong]2.[end] The page\'s [hl = text: "[style]" !] blocks.[end:Item]
+    [Item][strong]3.[end] Component styles, last.[end:Item]
+  [end:List]
+  [Code = lang: "text", title: "dist/ after arcm build", text: '
+    index.html            <style>…all of the page\'s CSS…</style>
+    assets/
+      logo-5DGK2KXQ.png   ← a url() file from the CSS, copied and renamed
+  ' !]
+  [List]
+    [Item][hl = text: "url()" !] files (images, fonts) are copied to [hl = text: "assets/" !] with a hash in the name, and the CSS is rewritten to match.[end:Item]
+    [Item][hl = text: "@import \"normalize.css\";" !] loads an npm package\'s CSS, with no [hl = text: "bundle" !] entry.[end:Item]
+    [Item]With [hl = text: "externalStyles: true" !] in [Link = text: "arcmoon.config.js", href: "cli.html" !], the CSS goes to [hl = text: "assets/page-[hash].css" !] instead of inside the page.[end:Item]
+    [Item]Left as written: links to other sites, a [hl = text: "[link]" !] or [hl = text: "[style]" !] with other props (like [hl = text: "media:" !]), and [hl = text: "[style]" !] with live values.[end:Item]
+  [end:List]
+
+  [Title = id: "mistakes"]Mistakes[end:Title]
+
+  [Title = size: 3, id: "runtime-in-component"]Runtime code in a component\'s [hl = text: "[style]" !][end:Title]
+  [Code = lang: "log", text: '
+    ✗ runtime ${ }$ is not allowed in a component\'s [style]: one stylesheet is shared by every use. Use a -- prop instead, like [div = --color: runtime ${ … }$]
+  ' !]
+  [Code = text: '
+    # ✗ in Card.arcm
+    [p]Hi[end]
+    [style] p { color: runtime ${ color() }$; } [end]
+
+    # ✓ a live -- prop, read by the CSS
+    [p = --color: runtime ${ color() }$]Hi[end]
+    [style] p { color: var(--color); } [end]
+  ' !]
+
+  [Title = size: 3, id: "different-css"]Different CSS for different uses[end:Title]
+  [Code = lang: "log", text: '
+    ⚠ Card.arcm:3:1  [style] gives different CSS for different uses of this component; only the first is kept. Use -- props for values that differ per use
+  ' !]
+  [Code = text: '
+    # ✗ the [style] reads a prop, so each use would need its own CSS
+    ${ const { color } = ArcMoon.props(); }$
+    [p]Hi[end]
+    [style] p { color: ${ color }$; } [end]
+
+    # ✓ pass the value as a -- prop
+    ${ const { color } = ArcMoon.props(); }$
+    [p = --color: ${ color }$]Hi[end]
+    [style] p { color: var(--color); } [end]
+  ' !]
+
+  [Title = size: 3, id: "css-error"]CSS that can\'t be read[end:Title]
+  [Code = lang: "log", text: '
+    ✗ Card.arcm:4:3  CSS error in [style]: Unclosed bracket
+  ' !]
+  [Text]In a component, ArcMoon must read the CSS to scope it, so broken CSS stops the build at the line inside the [hl = text: "[style]" !]. Look for a missing [hl = text: "}" !], [hl = text: "]" !] or [hl = text: ";" !].[end:Text]
+
+  [Title = size: 3, id: "unsafe-value"]A value that adds more CSS[end:Title]
+  [Code = lang: "log", text: '
+    ✗ css.width on [p] can\'t contain ";", "{" or "}": it would add other CSS to the element. Got "1px; background: red"
+  ' !]
+  [Text]A [hl = text: "css." !] or [hl = text: "--" !] value holds one value. Set each property with its own prop: [hl = text: "css.width: \"1px\", css.background: \"red\"" !].[end:Text]
+
+  [Title = size: 3, id: "typo"]A property name that doesn\'t exist[end:Title]
+  [Code = lang: "log", text: '
+    ⚠ page.arcm:1:1  css.colr on [p] is not a CSS property (did you mean css.color?)
+  ' !]
+  [Text]A warning: the property is still written, but the browser ignores it. Fix the name.[end:Text]
+[end:Docs]

@@ -1,0 +1,149 @@
+# ###################
+# Docs: Browser build
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+[import = Note: "@/components/docs/Note.arcm" !]
+
+[Docs = slug: "browser"]
+  [Title = id: "what"]What it is[end:Title]
+  [Text]
+    ArcMoon also runs in the browser: build a page from ArcMoon code and show it, with no server.
+    It is made for live editors, previews and tools. The [Link = text: "Playground", href: "../playground.html" !] on this site uses it.
+    For real sites, build with the [Link = text: "CLI", href: "cli.html" !] in Node.js.
+  [end:Text]
+  [Text]No install needed, straight from a CDN:[end:Text]
+  [Code = lang: "html", title: "index.html", file: "src/samples/browser/quick.html" !]
+
+  [Title = id: "install"]Getting it[end:Title]
+  [List]
+    [Item][strong]From npm:[end] [hl = text: "npm install arcmoon" !], then [hl = text: "import ArcMoon from \"arcmoon\"" !]. Bundlers pick the browser build ([hl = text: "dist/browser.js" !] and [hl = text: "dist/worker.js" !]) by themselves.[end:Item]
+    [Item][strong]From a CDN:[end] [hl = text: "import ArcMoon from \"https://cdn.jsdelivr.net/npm/arcmoon@1/+esm\"" !].[end:Item]
+  [end:List]
+  [Text]The compile runs in a Web Worker. Browsers only start workers from the page\'s own site, so from a CDN, ArcMoon starts it through a [hl = text: "blob:" !] file. If your page has a Content Security Policy, allow [hl = text: "worker-src blob:" !].[end:Text]
+
+  [Title = id: "render"]render()[end:Title]
+  [Text]Builds the page as real elements, ready to put in the page. Runtime code works:[end:Text]
+  [Code = lang: "js", file: "src/samples/browser/render.js" !]
+  [List]
+    [Item]It returns a document fragment. Insert it right after [hl = text: "await am.render()" !]: runtime code starts on the next task.[end:Item]
+    [Item]Refs point straight at the built elements, and the [hl = text: "data-arcm-ref" !] attributes are removed.[end:Item]
+    [Item][hl = text: "{ raw }" !] HTML is turned into real elements too.[end:Item]
+  [end:List]
+
+  [Title = id: "compile"]compile()[end:Title]
+  [Text]Returns the page as an HTML string, like in Node.js:[end:Text]
+  [Code = lang: "js", text: '
+    const html = await new ArcMoon({ src: "[p]Hi ${ 20 + 1 }$[end]" }).compile();
+    // "<p>Hi 21</p>"
+  ' !]
+  [Text]If the page has runtime code, its script loads its code from [hl = text: "blob:" !] URLs that only exist while this page is open. So the HTML runs in this page, in a frame or a new tab of it, but not as a saved file:[end:Text]
+  [Code = lang: "js", file: "src/samples/browser/iframe.js" !]
+  [Text]To make HTML files, build in Node.js.[end:Text]
+
+  [Title = id: "files"]Files in memory[end:Title]
+  [Text]There is no disk in the browser. Give the files as a map of names to code, and they can import each other:[end:Text]
+  [Code = lang: "js", file: "src/samples/browser/files.js" !]
+  [List]
+    [Item][hl = text: "filename" !] picks which file is the page. Without it, use [hl = text: "src" !] for the page code.[end:Item]
+    [Item]Paths are relative, as on disk. [hl = text: "importAliases" !] works too.[end:Item]
+    [Item][hl = text: ".js" !] and [hl = text: ".json" !] files in [hl = text: "files" !] can be imported by build-time and runtime code.[end:Item]
+  [end:List]
+
+  [Title = id: "baseUrl"]Files from a server[end:Title]
+  [Text]With [hl = text: "baseUrl" !], files not in [hl = text: "files" !] are fetched from that address: components, JSON, scripts:[end:Text]
+  [Code = lang: "js", file: "src/samples/browser/baseurl.js" !]
+  [Text]The server must allow the request (CORS), like any [hl = text: "fetch" !] from the page.[end:Text]
+
+  [Title = id: "packages"]npm packages[end:Title]
+  [Text]The browser can\'t read [hl = text: "node_modules" !]. Map each package name to a URL that serves it as a module, like [hl = text: "esm.sh" !]:[end:Text]
+  [Code = lang: "js", file: "src/samples/browser/packages.js" !]
+  [Text]The same map serves build-time and runtime code. A package that isn\'t in it stops the build:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ /anonymous.arcm  "dayjs" is not in packages; add packages: { "dayjs": "https://esm.sh/dayjs" }
+  ' !]
+
+  [Title = id: "props-env"]Props and env[end:Title]
+  [Code = lang: "js", text: '
+    const html = await new ArcMoon({
+      src: \'${ const { user } = ArcMoon.props(); }$[p]${ process.env.API_URL }$ for ${ user }$[end]\',
+      props: { user: "Adam" },
+      env: { API_URL: "https://api.example.com" }
+    }).compile();
+    // <p>https://api.example.com for Adam</p>
+  ' !]
+  [List]
+    [Item][hl = text: "props" !] works as in Node.js: [hl = text: "ArcMoon.props()" !] at the top of the page reads it.[end:Item]
+    [Item][hl = text: "env" !] is the whole [hl = text: "process.env" !]: the browser has no environment of its own. Each compile gets only the [hl = text: "env" !] passed to it.[end:Item]
+  [end:List]
+
+  [Title = id: "node"]What build-time code can use[end:Title]
+  [Text]Build-time code runs in the browser\'s worker, not in Node.js, so some things work differently:[end:Text]
+  [List]
+    [Item][strong]npm packages:[end] from [hl = text: "packages" !] only.[end:Item]
+    [Item][strong]Local [hl = text: ".js" !] / [hl = text: ".json" !]:[end] from [hl = text: "files" !] or [hl = text: "baseUrl" !].[end:Item]
+    [Item][strong][hl = text: "node:path" !], [hl = text: "node:events" !], [hl = text: "node:buffer" !], [hl = text: "node:url" !]:[end] browser stand-ins, also by bare name ([hl = text: "\"path\"" !]).[end:Item]
+    [Item][strong][hl = text: "node:fs" !]:[end] [hl = text: "readFileSync" !], [hl = text: "existsSync" !] and [hl = text: "promises" !], reading the files in memory (and fetched ones), not a disk.[end:Item]
+    [Item][strong][hl = text: "fetch" !]:[end] the browser\'s own; CORS applies.[end:Item]
+    [Item][strong]Other Node.js modules:[end] an error.[end:Item]
+  [end:List]
+  [Code = title: "build-time code with node:fs", text: '
+    ${ import { readFileSync } from "node:fs"; }$
+    [pre]${ readFileSync("/notes.txt", "utf8") }$[end]
+  ' !]
+  [Code = lang: "log", text: '
+    ✗ /anonymous.arcm  "node:child_process" is not available in the browser
+  ' !]
+  [Text]The stand-ins are close to Node.js but not the same: for example [hl = text: "path.win32" !] works like posix, and printing a module object can differ. Code that leans on Node.js details is best built in Node.js. In runtime code, every [hl = text: "node:" !] module is an error, as always.[end:Text]
+
+  [Title = id: "safety"]What the worker can\'t touch[end:Title]
+  [Text]The whole compile (imports, warnings, build-time code) runs in a Web Worker, away from your page. Build-time code there has no [hl = text: "document" !], cookies or storage:[end:Text]
+  [Code = lang: "js", text: '
+    await new ArcMoon({ src: "[p]${ typeof document }$ ${ typeof localStorage }$[end]" }).compile();
+    // "<p>undefined undefined</p>"
+  ' !]
+  [List]
+    [Item]Each compile has a time limit ([hl = text: "timeout" !], default 5000 ms). A worker that runs over is stopped: [hl = text: "${ }$ code took longer than 500 ms and was stopped" !].[end:Item]
+    [Item]It can still [hl = text: "fetch" !] what the browser allows. The [Link = text: "protector", href: "protector.html" !] doesn\'t run in the browser, so only compile code you trust, or show results in a sandboxed frame.[end:Item]
+    [Item]Runtime code from [hl = text: "render()" !] runs in your page, with its full access.[end:Item]
+  [end:List]
+
+  [Title = id: "options"]All options[end:Title]
+  [Code = lang: "js", text: '
+    new ArcMoon({
+      src: "…",                                     // the page code, or
+      filename: "index.arcm",                       // the page, from files or baseUrl
+      files: { "Card.arcm": "…" },                  // files in memory
+      baseUrl: "https://example.com/site/",         // where other files are fetched from
+      packages: { dayjs: "https://esm.sh/dayjs" },  // npm packages, by URL
+      props: { user: "Adam" },                       // page data for ArcMoon.props()
+      env: { API_URL: "…" },                        // process.env in build-time code
+      importAliases: { "@": "./src" },
+      removeComments: true,
+      timeout: 5000,                                // ms, then the worker is stopped
+      onWarning: (w) => {},                         // { source, position, message }
+      worker: myWorker,                             // for tools: your own worker
+      toModuleURL: (code) => url                    // for tools and tests: how code becomes a module URL
+    });
+  ' !]
+
+  [Title = id: "messages"]Warnings and errors[end:Title]
+  [Text]The same as in Node.js: warnings go to [hl = text: "onWarning" !] as [hl = text: "{ source, position, message }" !], and errors throw with [hl = text: "name" !], [hl = text: "source" !] and [hl = text: "position" !]. See [Link = text: "JavaScript API", href: "api.html#warnings" !].[end:Text]
+  [Code = lang: "js", text: '
+    try {
+      await new ArcMoon({ src: "[p = id: AKZB]x[end]" }).compile();
+    } catch (err) {
+      err.name;      // "ParserError"
+      err.message;   // "/anonymous.arcm:1:10  unquoted value AKZB for prop \"id\"; …"
+    }
+  ' !]
+
+  [Title = id: "size"]Size[end:Title]
+  [Text][hl = text: "browser.js" !] is about 400 kB and [hl = text: "worker.js" !] about 390 kB (minified, before compression). Most of it is the HTML reader and writer. Load ArcMoon only on pages that need it, like an editor.[end:Text]
+[end:Docs]

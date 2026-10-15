@@ -1,0 +1,591 @@
+# ###################
+# A mini playground for the docs: a header, the live editor (arcmoon-highlight),
+# and the page it builds (download it, or see it full screen). The first result is built with the site.
+# Props: text (the code) or file (a path from the project folder), title (a file name, optional)
+# ###################
+${
+  import { readFileSync } from "node:fs";
+  import { staticHighlight } from "arcmoon-highlight";
+  import Compiler from "arcmoon";
+
+  const { text, file, title = null } = ArcMoon.props();
+  const lines = (file ? readFileSync(file, "utf8") : text).replace(/^\s*\n|\s+$/g, "").split("\n");
+  const indent = Math.min(...lines.filter((l) => l.trim()).map((l) => /^ */.exec(l)[0].length));
+
+  // ###################
+  // Sent to the browser: the code, its first HTML, and the tools to load
+  // (the same versions this site is built with)
+  // ###################
+  export const code = lines.map((l) => l.slice(indent)).join("\n");
+  export const firstHtml = await new Compiler(file ? { filename: file, onWarning() {} } : { src: code, onWarning() {} }).compile();
+  const highlight = JSON.parse(readFileSync(new URL("../../node_modules/arcmoon-highlight/package.json", import.meta.url), "utf8"));
+  export const compilerUrl = `https://cdn.jsdelivr.net/npm/arcmoon@${ArcMoon.version}/dist/browser.js`;
+  export const editorUrl = `https://cdn.jsdelivr.net/npm/arcmoon-highlight@${highlight.version}/dist/arcmoon-highlight.full.js`;
+  export const startClass = "playground editor-wait frame-wait";
+  export const startLabel = "Run";
+  export const codeName = (title ?? file ?? "page.arcm").split("/").pop();
+  export const frameStyle = "<style>body{margin:16px;font:15px/1.5 system-ui,sans-serif;color:#18181b;background:#fff}</style>";
+  export const fileName = `${(title ?? file ?? "page").split("/").pop().replace(/\.arcm$/, "")}.html`;
+}$
+
+runtime ${
+  import { signal, computed, effect } from "arcmoon/reactive";
+
+  const fontSize = signal(13);
+  const full = signal(false);
+  const phase = signal("idle");
+  const fresh = signal(false);
+  const html = signal(firstHtml);
+  const buildError = signal("");
+  const ready = signal(false);
+  const failed = signal(false);
+
+  // ###################
+  // Loading: the root class says what is still on its way (starts in the HTML, so no flash)
+  // ###################
+  const rootClass = signal(startClass);
+
+  // ###################
+  // Text in the header: plain signals, so their first value is in the HTML
+  // ###################
+  const runLabel = signal(startLabel);
+  effect(() => runLabel(phase() === "scan" ? "Reading…" : phase() === "build" ? "Building…" : "Run"));
+  let frameShown = false;
+  const showState = () =>
+    rootClass(["playground", !ready() && !failed() && "editor-wait", !frameShown && "frame-wait"].filter(Boolean).join(" "));
+  const running = signal(false);
+  const copied = signal(false);
+  const height = signal(120);
+
+  // ###################
+  // The download: the result as a whole HTML file
+  // ###################
+  const download = computed(() => {
+    const page = /^\s*<!doctype/i.test(html()) ? html() : `<!doctype html>\n<meta charset="utf-8">\n<title>${fileName}</title>\n${frameStyle}\n${html()}`;
+    return `data:text/html;charset=utf-8,${encodeURIComponent(page)}`;
+  });
+
+  const box = ArcMoon.ref(ArcMoon.defineRef("editor"));
+  const frame = ArcMoon.ref(ArcMoon.defineRef("frame"));
+  const errorText = ArcMoon.ref(ArcMoon.defineRef("out-error-text"));
+
+  let editor = null;
+  let highlight = null;
+  let Browser = null;
+
+  // ###################
+  // Run: the scan line sweeps the code first; compiling starts when it ends
+  // (a timer starts it anyway if the animation never ends)
+  // ###################
+  let scanDone = null;
+  const scanEnded = () => scanDone?.();
+  const scan = () =>
+    new Promise((done) => {
+      scanDone = done;
+      setTimeout(done, 1200);
+    });
+
+  const run = async () => {
+    if (!editor || !Browser || running()) return;
+    running(true);
+    phase("scan");
+    await scan();
+    scanDone = null;
+    phase("build");
+    try {
+      html(await new Browser({ src: editor.getValue(), timeout: 20000, onWarning: () => {} }).compile());
+      buildError("");
+    } catch (err) {
+      // the error, named after this example's file
+      buildError(err.message.replace(/^\S*?\.arcm(?=:\d)/, codeName));
+    }
+    phase("idle");
+    running(false);
+    fresh(true);
+    setTimeout(() => fresh(false), 600);
+  };
+
+  // ###################
+  // The error's text: file:line:col dimmed, the [blocks] it quotes highlighted like the code
+  // ###################
+  const escape = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  effect(() => {
+    const message = buildError();
+    let out = "";
+    let last = 0;
+    for (const m of message.matchAll(/(\S+\.arcm:\d+:\d+)|(\[[^\]\n]*\])/g)) {
+      out += escape(message.slice(last, m.index));
+      out += m[1] ? `<span class="at">${escape(m[1])}</span>` : highlight ? highlight(m[2], { classPrefix: "arcm-" }) : escape(m[2]);
+      last = m.index + m[0].length;
+    }
+    errorText.innerHTML = out + escape(message.slice(last));
+  });
+
+  const zoom = (step) => fontSize(Math.min(20, Math.max(10, fontSize() + step)));
+  const reset = () => {
+    editor?.setValue(code);
+    run();
+  };
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(editor ? editor.getValue() : code);
+      copied(true);
+      setTimeout(() => copied(false), 1500);
+    } catch {}
+  };
+  const runOnKey = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      run();
+    }
+  };
+
+  // ###################
+  // The result frame grows with its page
+  // ###################
+  const toggleFull = () => full(!full());
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && full()) full(false);
+  });
+
+  const fit = () => {
+    try {
+      height(Math.max(64, frame.contentDocument.documentElement.offsetHeight));
+      if (!frameShown) {
+        frameShown = true;
+        showState();
+      }
+    } catch {}
+  };
+
+  // ###################
+  // The editor (a script that sets window.ArcMoonHighlight) and the compiler (a module)
+  // ###################
+  const loadEditor = () =>
+    window.ArcMoonHighlight
+      ? Promise.resolve(window.ArcMoonHighlight)
+      : new Promise((done, fail) => {
+          const tag = document.createElement("script");
+          tag.src = editorUrl;
+          tag.onload = () => done(window.ArcMoonHighlight);
+          tag.onerror = () => fail(new Error("can't load the editor"));
+          document.head.append(tag);
+        });
+
+  Promise.all([loadEditor(), import(compilerUrl)])
+    .then(([{ attachHighlighter, staticHighlight }, compiler]) => {
+      Browser = compiler.default;
+      highlight = staticHighlight;
+      box.replaceChildren();
+      editor = attachHighlighter(box, {
+        classPrefix: "arcm-",
+        caretColor: "var(--pg-ink)",
+        showLineNumbers: true
+      });
+      editor.setValue(code);
+      ready(true);
+      showState();
+    })
+    .catch(() => {
+      failed(true);
+      showState();
+    });
+}$
+
+[div = class: runtime ${ rootClass() }$, --pg-font: runtime ${ `${fontSize()}px` }$]
+  [div = class: "head"]
+    [span = class: "name", hidden: ${ !title }$]${ title }$[end]
+    [span = class: "loading"]runtime ${ failed() ? "Couldn't load the editor" : "" }$[end]
+    [div = class: "tools"]
+      [button = class: "icon", type: "button", title: "Smaller text", aria-label: "Smaller text", onclick: runtime ${ () => zoom(-1) }$]
+        [svg = viewBox: "0 0 24 24", aria-hidden: "true"][circle = cx: "11", cy: "11", r: "7" !][path = d: "m21 21-4.3-4.3M8 11h6" !][end]
+      [end]
+      [button = class: "icon", type: "button", title: "Bigger text", aria-label: "Bigger text", onclick: runtime ${ () => zoom(1) }$]
+        [svg = viewBox: "0 0 24 24", aria-hidden: "true"][circle = cx: "11", cy: "11", r: "7" !][path = d: "m21 21-4.3-4.3M11 8v6M8 11h6" !][end]
+      [end]
+      [span = class: "sep" !]
+      [button = class: "icon", type: "button", title: "Back to the example", aria-label: "Back to the example", disabled: runtime ${ !ready() }$, onclick: runtime ${ reset }$]
+        [svg = viewBox: "0 0 24 24", aria-hidden: "true"][path = d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" !][path = d: "M3 3v5h5" !][end]
+      [end]
+      [button = class: "icon", type: "button", title: "Copy the code", aria-label: "Copy the code", onclick: runtime ${ copy }$]
+        [svg = viewBox: "0 0 24 24", aria-hidden: "true", hidden: runtime ${ copied() }$][rect = x: "9", y: "9", width: "13", height: "13", rx: "2" !][path = d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" !][end]
+        [svg = class: "done", viewBox: "0 0 24 24", aria-hidden: "true", hidden: runtime ${ !copied() }$][path = d: "M20 6 9 17l-5-5" !][end]
+      [end]
+      [span = class: "sep" !]
+      [button = class: "run", data-launching: runtime ${ phase() === "scan" }$, type: "button", title: "Run (Ctrl+Enter)", disabled: runtime ${ !ready() || running() }$, onclick: runtime ${ run }$]
+        [svg = viewBox: "0 0 24 24", aria-hidden: "true"][path = d: "M6 4l14 8-14 8z" !][end]
+        runtime ${ runLabel() }$
+      [end]
+    [end]
+  [end]
+
+  [div = class: "stage"]
+    [div = class: "editor", arcm-ref: "editor", onkeydown: runtime ${ runOnKey }$]
+      [pre][code]${ { raw: staticHighlight(code, { classPrefix: "arcm-" }) } }$[end][end]
+    [end]
+    [div = class: runtime ${ phase() === "scan" ? "scan on" : "scan" }$, aria-hidden: "true", onanimationend: runtime ${ scanEnded }$][end]
+  [end]
+
+  [div = class: "output", data-error: runtime ${ Boolean(buildError()) }$, data-full: runtime ${ full() }$, data-building: runtime ${ phase() === "build" }$, data-fresh: runtime ${ fresh() }$]
+    [div = class: "out-head"]
+      [span = class: "out-name"]Result[end]
+      [div = class: "tools"]
+        [a = class: "icon", href: runtime ${ download() }$, download: ${ fileName }$, title: ${ `Download ${fileName}` }$, aria-label: ${ `Download ${fileName}` }$]
+          [svg = viewBox: "0 0 24 24", aria-hidden: "true"][path = d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" !][end]
+        [end]
+        [button = class: "icon", type: "button", title: runtime ${ full() ? "Exit full screen (Esc)" : "Full screen" }$, aria-label: runtime ${ full() ? "Exit full screen" : "Full screen" }$, aria-pressed: runtime ${ String(full()) }$, onclick: runtime ${ toggleFull }$]
+          [svg = viewBox: "0 0 24 24", aria-hidden: "true", hidden: runtime ${ full() }$][path = d: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" !][end]
+          [svg = viewBox: "0 0 24 24", aria-hidden: "true", hidden: runtime ${ !full() }$][path = d: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" !][end]
+        [end]
+      [end]
+    [end]
+    [iframe = title: ${ `Result of ${title ?? "the example"}` }$, arcm-ref: "frame", srcdoc: runtime ${ frameStyle + html() }$, css.height: runtime ${ full() ? "auto" : `${height()}px` }$, onload: runtime ${ fit }$ !]
+    # when a build fails, the error takes the result's place until the next build works
+    [div = class: "out-error", role: "alert"][strong]This didn't build[end][pre = arcm-ref: "out-error-text"][end][end]
+  [end]
+[end]
+
+[style]
+  /* ###################
+     Always dark; the code uses the site's arcm- token colors (their dark set, as in site.css)
+     ################### */
+  .playground {
+    --pg-bg: #0f0f12;
+    --pg-head: #0b0b0d;
+    --pg-line: #232328;
+    --pg-ink: #e8eaf0;
+    --pg-muted: #8b8b96;
+    --arcm-punct: #7b7b88;
+    --arcm-tag: #ff7a8c;
+    --arcm-key: #7cc4ff;
+    --arcm-string: #8fdba8;
+    --arcm-number: #f5b971;
+    --arcm-keyword: #c4a3ff;
+    --arcm-logic: #67d4e8;
+    --arcm-comment: #6e6e78;
+    --arcm-text: #e4e4e8;
+    --arcm-call: #f0d38a;
+    margin: 24px 0;
+    overflow: hidden;
+    color: var(--pg-ink);
+    background: var(--pg-bg);
+    border: 1px solid var(--pg-line);
+    border-radius: 12px;
+    color-scheme: dark;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 6px 8px 6px 14px;
+    background: var(--pg-head);
+    border-bottom: 1px solid var(--pg-line);
+  }
+  .name {
+    font: 500 12px/1 var(--mono);
+    color: var(--pg-muted);
+  }
+  .loading {
+    font: 12px/1 var(--mono);
+    color: #5c5c66;
+  }
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .sep {
+    width: 1px;
+    height: 16px;
+    margin: 0 4px;
+    background: var(--pg-line);
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: default;
+  }
+  svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .icon {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    color: var(--pg-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+  }
+  .icon:hover:not(:disabled) {
+    color: var(--pg-ink);
+    border-color: var(--pg-line);
+  }
+  .icon:disabled {
+    opacity: 0.4;
+  }
+  .done {
+    color: #4fc58a;
+  }
+  svg[hidden] {
+    display: none;
+  }
+  .run {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 12px;
+    font: 600 12px/1 var(--sans);
+    color: #fff;
+    background: #d7263d;
+    border: 0;
+    border-radius: 6px;
+  }
+  .run svg {
+    width: 10px;
+    height: 10px;
+    fill: currentColor;
+    stroke: none;
+  }
+  .run:hover:not(:disabled) {
+    background: #b81d32;
+  }
+  .run:disabled {
+    opacity: 0.55;
+  }
+  /* ###################
+     A failed build: the error instead of the result
+     ################### */
+  .out-error {
+    display: none;
+    padding: 14px 16px;
+    color: #ffb3bd;
+    background: color-mix(in srgb, #d7263d 12%, var(--pg-bg));
+    border-top: 2px solid #d7263d;
+  }
+  .output[data-error] .out-error {
+    display: block;
+  }
+  .output[data-error] iframe {
+    display: none;
+  }
+  .out-error strong {
+    font-size: 13px;
+    color: #ff7a8c;
+  }
+  .out-error :global(.at) {
+    color: var(--pg-muted);
+  }
+  .out-error pre {
+    margin: 6px 0 0;
+    font: 12px/1.5 var(--mono);
+    white-space: pre-wrap;
+  }
+  /* ###################
+     Run animation: the scan line, the flying play icon, the build bar, the result arriving
+     ################### */
+  .stage {
+    position: relative;
+    overflow: hidden;
+  }
+  .scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -80px;
+    z-index: 2;
+    height: 80px;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(to bottom, transparent, rgb(215 38 61 / 0.12) 60%, rgb(255 92 114 / 0.32));
+    border-bottom: 2px solid #ff5c72;
+    box-shadow: 0 8px 24px rgb(255 92 114 / 0.45);
+  }
+  .scan.on {
+    animation: sweep 0.75s cubic-bezier(0.55, 0, 0.35, 1) forwards;
+  }
+  @keyframes sweep {
+    0% { top: -80px; opacity: 0; }
+    12% { opacity: 1; }
+    88% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+  .run[data-launching] {
+    background-image: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+    background-size: 250% 100%;
+    animation: shine 0.75s ease-out;
+  }
+  .run[data-launching] svg {
+    animation: launch 0.75s ease-in forwards;
+  }
+  @keyframes shine {
+    from { background-position: 100% 0; }
+    to { background-position: -50% 0; }
+  }
+  @keyframes launch {
+    0% { transform: none; opacity: 1; }
+    30% { transform: translateX(-3px); }
+    100% { transform: translateX(16px) scale(0.5); opacity: 0; }
+  }
+  .output[data-building] .out-head::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 35%;
+    height: 2px;
+    background: #ff5c72;
+    box-shadow: 0 0 10px #ff5c72;
+    animation: progress 0.9s ease-in-out infinite;
+  }
+  @keyframes progress {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(300%); }
+  }
+  .output[data-fresh] iframe {
+    animation: arrive 0.5s ease-out;
+  }
+  @keyframes arrive {
+    from { opacity: 0; transform: translateY(10px); }
+  }
+
+  /* ###################
+     Loading: a shimmer over the code and the result until each is ready, then they fade in
+     ################### */
+  .editor,
+  .output {
+    position: relative;
+  }
+  .editor > :global(*) {
+    transition: opacity 0.25s ease;
+  }
+  iframe {
+    transition: opacity 0.25s ease, height 0.25s ease;
+  }
+  .editor-wait .editor > :global(*),
+  .frame-wait iframe {
+    opacity: 0;
+  }
+  .editor-wait .done {
+    display: none;
+  }
+  .editor-wait .editor::after,
+  .frame-wait .output::after {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font: 500 12px/1 var(--mono);
+    background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.05) 50%, transparent 70%);
+    background-size: 300% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .editor-wait .editor::after {
+    content: "Loading editor…";
+    color: #5c5c66;
+  }
+  .frame-wait .output::after {
+    content: "";
+    top: 41px;
+    background-color: #fff;
+    background-image: linear-gradient(100deg, transparent 30%, rgb(0 0 0 / 0.04) 50%, transparent 70%);
+  }
+  @keyframes shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+  }
+
+  .editor {
+    min-height: 120px;
+    font-family: var(--mono);
+    font-size: var(--pg-font, 13px);
+    line-height: 1.65;
+  }
+  .editor pre {
+    margin: 0;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-size: inherit;
+  }
+  .editor :global(.cm-editor) {
+    font-size: inherit;
+  }
+  .editor :global(.cm-gutters) {
+    border-right-color: var(--pg-line);
+  }
+  .output {
+    border-top: 1px solid var(--pg-line);
+    background: #fff;
+  }
+  .out-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 6px 8px 6px 14px;
+    background: var(--pg-head);
+    border-bottom: 1px solid var(--pg-line);
+  }
+  .out-name {
+    font: 500 12px/1 var(--mono);
+    color: var(--pg-muted);
+  }
+  a.icon {
+    text-decoration: none;
+  }
+  iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: #fff;
+  }
+
+  /* ###################
+     Full screen: the result covers the page; the same button brings it back
+     ################### */
+  .output[data-full] {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    border: 0;
+    background: #fff;
+  }
+  .output[data-full] iframe {
+    flex: 1;
+  }
+  /* ###################
+     Phones: the zoom buttons step aside and the file name shortens, so Run fits
+     ################### */
+  @media (max-width: 560px) {
+    .tools .icon:nth-child(-n + 2),
+    .tools .sep:first-of-type {
+      display: none;
+    }
+    .name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .head {
+      gap: 6px;
+      padding-left: 12px;
+    }
+  }
+[end]

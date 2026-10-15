@@ -1,0 +1,24 @@
+# A CSS animation: --c and --d give each dot its color and delay, css. props style one element
+${ const colors = ["#e11d48", "#f43f5e", "#f9566a", "#fb7185", "#fd8c98"]; }$
+
+[h1 = css.font-family: "system-ui, sans-serif", css.color: "#e11d48"]Bouncing dots[end:h1]
+[div = class: "dots", css.gap: "14px"]
+  [for-each = ${ colors }$, as: "c"]
+    [span = class: "dot", --c: ${ c }$, --d: ${ i * 120 + "ms" }$][end:span]
+  [end:for-each]
+[end:div]
+
+[style]
+  .dots { display: flex; align-items: flex-end; height: 120px; }
+  .dot {
+    width: 28px;
+    height: 28px;
+    background: var(--c);
+    border-radius: 50%;
+    animation: bounce 0.9s ease-in-out var(--d) infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-64px); }
+  }
+[end:style]

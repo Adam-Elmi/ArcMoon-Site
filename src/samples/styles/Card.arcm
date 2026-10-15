@@ -1,0 +1,8 @@
+[div = class: "card"]
+  [h2]Card title[end]
+  [slot!]
+[end]
+[style]
+  .card { padding: 1rem; border: 1px solid #ddd; }
+  h2 { color: tomato; }
+[end]

@@ -1,0 +1,7 @@
+# ###################
+# Release 0.0.0: a placeholder, so the version pages have something to compare 1.0.0 with
+# ###################
+[import = Release: "@/layouts/Release.arcm" !]
+
+[Release = version: "0.0.0", date: "2026-10-01", summary: "A placeholder release, not a real ArcMoon version.", placeholder: true]
+[end:Release]

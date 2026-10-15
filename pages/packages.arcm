@@ -1,0 +1,60 @@
+# ###################
+# Packages: ready-made .arcm files from the community, coming in ArcMoon 1.1.0
+# ###################
+[import = Site: "@/layouts/Site.arcm" !]
+
+[Site = title: "Packages", description: "Ready-made .arcm files from the community. Coming in ArcMoon 1.1.0.", section: "packages"]
+  [section = class: "wrap packages"]
+    [p = class: "kicker"]Packages[end]
+    [h1]Packages[end]
+    [p = class: "intro"]Ready-made [code].arcm[end] files you can drop into any page: buttons, menus, layouts and more.[end]
+    [div = class: "soon"]
+      [span = class: "badge"]Coming in v1.1.0[end]
+      [p]Packages aren\'t ready yet. They come with ArcMoon 1.1.0.[end]
+    [end]
+  [end]
+[end:Site]
+
+[style]
+  .packages {
+    max-width: 720px;
+    padding-top: clamp(40px, 8vw, 88px);
+    padding-bottom: 120px;
+  }
+  .kicker {
+    margin: 0;
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    margin: 10px 0 0;
+    font: 400 clamp(36px, 6vw, 52px)/1.1 var(--serif);
+    letter-spacing: -0.02em;
+  }
+  .intro {
+    margin: 16px 0 0;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .soon {
+    margin-top: 36px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px dashed var(--line-strong);
+    border-radius: 14px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    font: 600 13px/1.5 var(--mono);
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-radius: 999px;
+  }
+  .soon p {
+    margin: 12px 0 0;
+    color: var(--muted);
+  }
+[end]

@@ -1,0 +1,6 @@
+import { highlightJs } from "arcmoon-highlight";
+
+highlightJs('const n = add(1, "x");', { classPrefix: "arcm-" });
+// <span class="arcm-js-keyword">const</span> <span class="arcm-js-name">n</span>
+// <span class="arcm-js-operator">=</span> <span class="arcm-js-call">add</span>…
+// <span class="arcm-js-number">1</span>… <span class="arcm-js-string">"x"</span>…

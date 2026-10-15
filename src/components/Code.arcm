@@ -1,0 +1,152 @@
+# ###################
+# A code example: text (the code) or file (a path from the project folder).
+# lang: "arcm" (default), "js", "html", "css", "json", "lua", "vim", "bash", "log" (ArcMoon's ⚠ / ✗ messages), or anything else for plain text. title: shown above it.
+# output: true also shows the HTML ArcMoon builds from it (formatted with Prettier; pretty: false shows it as built).
+# copy: "always" keeps the copy button visible (default "hover")
+# ###################
+[import = Copy: "./docs/Copy.arcm" !]
+
+${
+  import { readFile } from "node:fs/promises";
+  import { staticHighlight, highlightJs } from "arcmoon-highlight";
+  import Compiler from "arcmoon";
+  import Prism from "prismjs";
+  import "prismjs/components/prism-json.js";
+  import "prismjs/components/prism-css-extras.js";
+  import "prismjs/components/prism-lua.js";
+  import "prismjs/components/prism-vim.js";
+  import { format } from "prettier";
+
+  const { text, file, lang = "arcm", title = null, output = false, pretty = true, copy = "hover" } = ArcMoon.props();
+  // ###################
+  // Code written inside the page keeps the page's indent: take it off
+  // ###################
+  const lines = (file ? await readFile(file, "utf8") : text).replace(/^\s*\n|\s+$/g, "").split("\n");
+  const indent = Math.min(...lines.filter((l) => l.trim()).map((l) => /^ */.exec(l)[0].length));
+  const code = lines.map((l) => l.slice(indent)).join("\n");
+
+  // ###################
+  // HTML with Prism; its "token tag" classes become arcm-tag, like the other arcm- colors
+  // ###################
+  const markup = (s) =>
+    Prism.highlight(s, Prism.languages.markup, "markup").replace(/class="token ([^"]*)"/g, (_, names) => `class="${names.split(" ").map((n) => `arcm-${n}`).join(" ")}"`);
+  // JSON with Prism too; its classes get arcm-json-, so they don't mix with HTML's
+  const json = (s) =>
+    Prism.highlight(s, Prism.languages.json, "json").replace(/class="token ([^"]*)"/g, (_, names) => `class="${names.split(" ").map((n) => `arcm-json-${n}`).join(" ")}"`);
+
+  // ###################
+  // CSS with Prism (+ css-extras); its tokens get the arcm-css- classes arcmoon-highlight uses,
+  // so a .css block looks like the CSS inside [style]
+  // ###################
+  const CSS_CLASS = {
+    selector: "selector", class: "class", id: "id", "pseudo-class": "pseudo", "pseudo-element": "pseudo",
+    attribute: "attribute", "attr-name": "attribute", "attr-value": "string", property: "property",
+    color: "color", hexcode: "color", function: "function", number: "number", unit: "number",
+    variable: "variable", punctuation: "punctuation", combinator: "punctuation", operator: "punctuation",
+    string: "string", url: "string", comment: "comment", important: "important", atrule: "at-rule", rule: "at-rule"
+  };
+  const css = (s) =>
+    Prism.highlight(s, Prism.languages.css, "css").replace(/class="token ([^"]*)"/g, (_, names) => {
+      const hit = names.split(" ").map((n) => CSS_CLASS[n]).find(Boolean);
+      return hit ? `class="arcm-css-${hit}"` : "";
+    });
+
+  // ###################
+  // Lua and Vim script with Prism; their tokens get the arcm-js- colors, so they look like JS
+  // ###################
+  const SCRIPT_CLASS = {
+    comment: "comment", keyword: "keyword", string: "string", number: "number", boolean: "number",
+    function: "call", builtin: "property", operator: "operator", punctuation: "operator"
+  };
+  const script = (s, lang) =>
+    Prism.highlight(s, Prism.languages[lang], lang).replace(/class="token ([^"]*)"/g, (_, names) => {
+      const hit = names.split(" ").map((n) => SCRIPT_CLASS[n]).find(Boolean);
+      return hit ? `class="arcm-js-${hit}"` : "";
+    });
+
+  // ###################
+  // ArcMoon's messages: the ⚠ / ✗ mark, the file:line:col, and the [blocks] and <tags> they quote
+  // ###################
+  const escape = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const log = (src) => {
+    let out = "";
+    let last = 0;
+    for (const m of src.matchAll(/([⚠✗])|(\S+\.arcm:\d+:\d+)|(\[[^\]\n]*\])|(<\/?[a-z][^>\n]*>)/g)) {
+      out += escape(src.slice(last, m.index));
+      const [hit, mark, at, block, tag] = m;
+      out +=
+        mark ? `<span class="${mark === "⚠" ? "arcm-log-warn" : "arcm-log-error"}">${mark}</span>`
+        : at ? `<span class="arcm-log-at">${at}</span>`
+        : block ? staticHighlight(block, { classPrefix: "arcm-" })
+        : markup(tag);
+      last = m.index + hit.length;
+    }
+    return out + escape(src.slice(last));
+  };
+
+  // ###################
+  // Highlighted HTML for the languages it knows; anything else is written as text
+  // ###################
+  // ###################
+  // Shell commands: each line becomes pieces with a class, drawn with [for-each] below.
+  // command, its subcommand, -flags, arguments, "strings", # comments; after && | ; (or npx) a new command
+  // ###################
+  const shell = (src) =>
+    src.split("\n").map((line) => {
+      if (/^\s*#/.test(line)) return [{ text: line, kind: "arcm-sh-comment" }];
+      let word = 0;
+      const pieces = [];
+      for (const text of line.match(/\s+|"[^"]*"|'[^']*'|\S+/g) ?? []) {
+        // ###################
+        // Spaces join the piece before them (or start the line)
+        // ###################
+        if (/^\s+$/.test(text)) {
+          if (pieces.length) pieces.at(-1).text += text;
+          else pieces.push({ text, kind: null });
+          continue;
+        }
+        if (/^(&&|\|\||\||;|>>?)$/.test(text)) {
+          word = 0;
+          pieces.push({ text, kind: "arcm-sh-operator" });
+          continue;
+        }
+        word++;
+        // ###################
+        // npx arcm …: the runner, then the real command
+        // ###################
+        if (word === 2 && /^(npx|bunx|pnpx)$/.test(pieces.at(-1)?.text.trim())) word = 1;
+        const kind =
+          word === 1 ? "arcm-sh-command"
+          : /^-/.test(text) ? "arcm-sh-flag"
+          : /^["']/.test(text) ? "arcm-sh-string"
+          : word === 2 ? "arcm-sh-sub"
+          : "arcm-sh-arg";
+        pieces.push({ text, kind });
+      }
+      return pieces;
+    });
+  const shellLines = lang === "bash" ? shell(code) : [];
+
+  const html =
+    lang === "arcm" ? staticHighlight(code, { classPrefix: "arcm-" })
+    : lang === "js" ? highlightJs(code, { classPrefix: "arcm-" })
+    : lang === "html" ? markup(code)
+    : lang === "json" ? json(code)
+    : lang === "css" ? css(code)
+    : lang === "lua" || lang === "vim" ? script(code, lang)
+    : lang === "log" ? log(code)
+    : null;
+  const page = output ? await new Compiler(file ? { filename: file, onWarning() {} } : { src: code, onWarning() {} }).compile() : null;
+  // Prettier writes <br />; ArcMoon writes <br>, so the example shows <br>
+  // pretty: false shows the HTML exactly as built (blank lines too); only the script is taken out
+  const clean = page ? page.replace(/<script[\s\S]*?<\/script>/g, "") : "";
+  const built = page ? [markup(pretty ? (await format(clean.replace(/^\s*\n/gm, ""), { parser: "html" })).trim().replace(/ \/>/g, ">") : clean.trim())] : [];
+}$
+[figure = class: "code", data-lang: ${ lang }$]
+  [figcaption = hidden: ${ !title }$]${ title }$[end]
+  [Copy = show: ${ copy }$][pre][code]${ html ? { raw: html } : lang === "bash" ? null : code }$[for-each = ${ shellLines }$, as: "line"][for-each = ${ line }$, as: "piece"][span = class: ${ piece.kind }$]${ piece.text }$[end][end]${ i < shellLines.length - 1 ? "\n" : null }$[end][end][end][end:Copy]
+  [for-each = ${ built }$, as: "out"]
+    [div = class: "out-label"]HTML ArcMoon builds[end]
+    [pre = class: "out"][code]${ { raw: out } }$[end][end]
+  [end]
+[end]

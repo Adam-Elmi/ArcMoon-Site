@@ -1,0 +1,168 @@
+# ###################
+# Versions: two releases side by side, then every release as a card (newest first).
+# Releases are the files in pages/versions/; each card opens that release's page
+# ###################
+[import = Site: "@/layouts/Site.arcm" !]
+[import = VersionCompare: "@/components/VersionCompare.arcm" !]
+[import = VersionBar: "@/components/release/VersionBar.arcm" !]
+
+${
+  import { loadReleases, KINDS } from "../src/lib/releases.js";
+
+  const releases = loadReleases().reverse().map((r, i) => {
+    const counts = KINDS.map((k) => ({ ...k, n: r.changes.filter((c) => c.kind === k.id).length })).filter((k) => k.n);
+    const total = counts.reduce((sum, k) => sum + k.n, 0);
+    return {
+      ...r,
+      href: `versions/${r.page}`,
+      latest: i === 0 ? ["latest"] : [],
+      counts: counts.map((k) => ({ ...k, word: k.n === 1 ? k.one : k.label.toLowerCase(), width: `${(k.n / total) * 100}%` }))
+    };
+  });
+}$
+
+[Site = title: "Versions", description: "Compare any two ArcMoon releases: breaking changes, new features, improvements and fixes.", section: "versions"]
+  [VersionBar!]
+  [div = class: "wrap versions-page"]
+    [header = class: "versions-head"]
+      [p = class: "versions-kicker"]Versions[end]
+      [h1]Compare Versions[end]
+    [end]
+
+    [VersionCompare!]
+
+    [section = class: "versions-all", aria-labelledby: "all-releases"]
+      [h2 = id: "all-releases"]Every release[end]
+      [ul]
+        [for-each = ${ releases }$, as: "r"]
+          [li]
+            [a = class: "release-card", href: ${ r.href }$]
+              [span = class: "release-top"]
+                [strong]${ r.version }$[end]
+                [for-each = ${ r.latest }$, as: "l"][span = class: "release-latest"]${ l }$[end][end]
+                [span = class: "release-date"]${ r.date }$[end]
+              [end]
+              [span = class: "release-summary"]${ r.summary }$[end]
+              [span = class: "release-bar", aria-hidden: "true"]
+                [for-each = ${ r.counts }$, as: "c"][i = data-kind: ${ c.id }$, --w: ${ c.width }$][end][end]
+              [end]
+              [span = class: "release-counts"]
+                [for-each = ${ r.counts }$, as: "c"][span = data-kind: ${ c.id }$]${ c.n }$ ${ c.word }$[end][end]
+              [end]
+            [end]
+          [end]
+        [end]
+      [end]
+    [end]
+  [end]
+[end:Site]
+
+[style]
+  .versions-page {
+    max-width: 900px;
+    padding-top: clamp(40px, 6vw, 72px);
+    padding-bottom: 96px;
+  }
+  .versions-kicker {
+    margin: 0;
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .versions-head h1 {
+    margin: 12px 0 28px;
+    font: 400 clamp(38px, 6vw, 56px)/1.05 var(--serif);
+    letter-spacing: -0.02em;
+  }
+
+  /* ###################
+     Every release: a card each, with a bar of its kinds of changes
+     ################### */
+  .versions-all {
+    margin-top: 72px;
+  }
+  .versions-all h2 {
+    margin: 0 0 16px;
+    font: 600 22px/1.3 var(--sans);
+  }
+  .versions-all ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .release-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    padding: 18px 20px;
+    color: inherit;
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  .release-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+  .release-top {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .release-top strong {
+    font: 600 20px/1.2 var(--mono);
+  }
+  .release-latest {
+    padding: 1px 8px;
+    font: 500 11px/1.5 var(--mono);
+    color: var(--emerald);
+    background: var(--emerald-soft);
+    border-radius: 999px;
+  }
+  .release-date {
+    margin-left: auto;
+    font: 12px/1 var(--mono);
+    color: var(--faint);
+  }
+  .release-summary {
+    flex: 1;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .release-bar {
+    display: flex;
+    gap: 3px;
+    height: 6px;
+  }
+  .release-bar i {
+    width: var(--w);
+    border-radius: 3px;
+    background: var(--pick-6);
+  }
+  .release-bar [data-kind="breaking"],
+  .release-counts [data-kind="breaking"] { --c: var(--pick-1); }
+  .release-bar [data-kind="feature"],
+  .release-counts [data-kind="feature"] { --c: var(--pick-5); }
+  .release-bar [data-kind="improvement"],
+  .release-counts [data-kind="improvement"] { --c: var(--pick-2); }
+  .release-bar [data-kind="fix"],
+  .release-counts [data-kind="fix"] { --c: var(--pick-3); }
+  .release-bar i {
+    background: var(--c);
+  }
+  .release-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 12px;
+  }
+  .release-counts span {
+    color: var(--c);
+  }
+[end]

@@ -1,0 +1,178 @@
+# ###################
+# The home page's comparison with classic template engines: what each one does (src/data/compare.json)
+# ###################
+
+${
+  import compare from "../data/compare.json";
+
+  const { engines } = compare;
+  const others = engines.slice(1).map((e) => e.name).join(", ").replace(/, ([^,]*)$/, " and $1");
+  const marks = { yes: "Yes", partial: "Partly", no: "No" };
+  const rows = compare.rows.map((row) => ({
+    feature: row.feature,
+    cells: engines.map((e) => {
+      const [mark, note = ""] = row.cells[e.id];
+      return { mark, note, label: marks[mark], yes: mark === "yes", partial: mark === "partial", no: mark === "no" };
+    })
+  }));
+}$
+
+[section = class: "compare", aria-labelledby: "compare-title"]
+  [header = class: "head"]
+    [p = class: "kicker"]Compared[end]
+    [h2 = id: "compare-title"]More than a [em]template engine[end][end]
+    [p = class: "intro"]
+      ${ others }$ fill gaps in HTML. ArcMoon builds the whole page: the markup, its components,
+      their CSS and the code that runs in the browser.
+    [end]
+  [end]
+
+  [div = class: "scroll"]
+    [table]
+      [thead]
+        [tr]
+          [th = scope: "col"][span = class: "hidden-text"]Feature[end][end]
+          [for-each = ${ engines }$, as: "e"][th = scope: "col"]${ e.name }$[end][end]
+        [end]
+      [end]
+      [tbody]
+        [for-each = ${ rows }$, as: "row"]
+          [tr]
+            [th = scope: "row"]${ row.feature }$[end]
+            [for-each = ${ row.cells }$, as: "cell"]
+              [td = data-mark: ${ cell.mark }$]
+                [svg = class: "mark", viewBox: "0 0 16 16", aria-hidden: "true"]
+                  [for-each = ${ cell.yes ? [1] : [] }$][path = d: "M3 8.5 6.5 12 13 4.5", fill: "none", stroke: "currentColor", stroke-width: "1.8", stroke-linecap: "round", stroke-linejoin: "round" !][end]
+                  [for-each = ${ cell.partial ? [1] : [] }$][circle = cx: "8", cy: "8", r: "5.25", fill: "none", stroke: "currentColor", stroke-width: "1.5" !][path = d: "M8 2.75a5.25 5.25 0 0 1 0 10.5Z", fill: "currentColor" !][end]
+                  [for-each = ${ cell.no ? [1] : [] }$][path = d: "M4.5 4.5l7 7M11.5 4.5l-7 7", stroke: "currentColor", stroke-width: "1.5", stroke-linecap: "round" !][end]
+                [end]
+                [span = class: "hidden-text"]${ cell.label }$[end]
+                [span = class: "cell-note"]${ cell.note }$[end]
+              [end]
+            [end]
+          [end]
+        [end]
+      [end]
+    [end]
+  [end]
+[end]
+
+[style]
+  .compare {
+    max-width: var(--page);
+    margin: 0 auto;
+    padding: clamp(64px, 9vw, 112px) var(--gutter) 0;
+  }
+  .head {
+    max-width: 640px;
+    margin: 0 0 clamp(36px, 5vw, 56px);
+  }
+  .kicker {
+    margin: 0;
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h2 {
+    margin: 14px 0;
+    font: 300 clamp(34px, 5vw, 52px)/1.05 var(--serif);
+    letter-spacing: -0.02em;
+  }
+  h2 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .intro {
+    margin: 0;
+    font-size: 17px;
+    color: var(--muted);
+  }
+  /* ###################
+     The table: scrolls sideways on small screens, with the feature column kept in place
+     ################### */
+  .scroll {
+    position: relative;
+    overflow-x: auto;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  table {
+    width: 100%;
+    min-width: 820px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th,
+  td {
+    padding: 12px 14px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--line);
+  }
+  tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+  thead th {
+    font: 600 13px/1.3 var(--sans);
+    color: var(--muted);
+    background: var(--surface);
+  }
+  thead th:nth-child(2) {
+    color: var(--accent-ink);
+  }
+  tbody th {
+    width: 220px;
+    font-weight: 500;
+  }
+  thead th:first-child,
+  tbody th {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--bg);
+    border-right: 1px solid var(--line);
+  }
+  thead th:first-child {
+    background: var(--surface);
+  }
+  td:nth-child(2) {
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+  }
+  .mark {
+    display: block;
+    width: 16px;
+    height: 16px;
+  }
+  td[data-mark="yes"] .mark {
+    color: var(--pick-3);
+  }
+  td[data-mark="partial"] .mark {
+    color: var(--pick-4);
+  }
+  td[data-mark="no"] .mark {
+    color: var(--faint);
+  }
+  .cell-note {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--muted);
+  }
+  .hidden-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 720px) {
+    tbody th {
+      width: 150px;
+    }
+  }
+[end]

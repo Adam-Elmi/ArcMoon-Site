@@ -1,0 +1,2 @@
+${ const { label = "Click me", kind = "primary" } = ArcMoon.props(); }$
+[button = class: ${ `btn ${kind}` }$]${ label }$[end]

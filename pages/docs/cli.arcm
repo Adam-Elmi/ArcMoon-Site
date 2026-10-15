@@ -1,0 +1,347 @@
+# ###################
+# Docs: CLI and config
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "cli"]
+  [Title = id: "commands"]Commands[end:Title]
+  [Text][hl = text: "arcm" !] and [hl = text: "arcmoon" !] are the same command. In a project install, put [hl = text: "npx" !] in front: [hl = text: "npx arcm build pages" !]. See [Link = text: "Installation", href: "installation.html" !].[end:Text]
+
+  [Title = size: 3, id: "cmd-build"]arcm build[end:Title]
+  [Text]Builds [hl = text: ".arcm" !] files into HTML. Give it a folder or one file:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm build pages              # every .arcm file directly inside pages/
+    arcm build pages/index.arcm   # one file
+  ' !]
+  [Code = lang: "text", text: '
+    ✓ pages/about.arcm → dist/about.html  13 B
+    ✓ pages/index.arcm → dist/index.html  5.0 kB  (script 4.8 kB)
+      203 ms
+  ' !]
+  [List]
+    [Item]Each line shows the file, the HTML it wrote, its size, and its script size when it has runtime code.[end:Item]
+    [Item]A folder builds only the files directly inside it, not the folders below.[end:Item]
+    [Item]HTML goes to [hl = text: "outDir" !] from the config ([hl = text: "./dist" !] by default).[end:Item]
+  [end:List]
+  [Text][strong][hl = text: "-o" !]: another output folder.[end] Use it for subfolders, so their pages keep their place:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm build pages/blog -o dist/blog   # pages/blog/post.arcm → dist/blog/post.html
+  ' !]
+  [Text]For a whole site, keep the commands in [hl = text: "package.json" !] and run [hl = text: "npm run build" !]:[end:Text]
+  [Code = lang: "json", title: "package.json", text: '
+    {
+      "scripts": {
+        "build": "arcm build pages && arcm build pages/blog -o dist/blog"
+      }
+    }
+  ' !]
+  [Text][strong][hl = text: "-p" !]: print instead of writing.[end] A quick look at one page\'s HTML; no file is written:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm build pages/about.arcm -p
+    <p>About</p>
+  ' !]
+  [Text][strong][hl = text: "--dev" !]: for debugging.[end] The JavaScript stays readable, with a source map, so browser errors point at your [hl = text: ".arcm" !] lines:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm build pages --dev
+  ' !]
+
+  [Title = size: 3, id: "cmd-init"]arcm init[end:Title]
+  [Text]Creates [hl = text: "arcmoon.config.js" !] in the current folder, with the common options:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm init
+    ✓ Created /my-site/arcmoon.config.js
+  ' !]
+
+  [Title = size: 3, id: "cmd-show"]arcm show config[end:Title]
+  [Text]Prints the config ArcMoon loaded, or where it loaded it from. Use it when an option seems to be ignored:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm show config
+    {
+      "importAliases": { "@": "./src" },
+      "removeComments": true,
+      "timeout": 5000,
+      "bundle": [],
+      "outDir": "./dist"
+    }
+
+    arcm show --path-config
+    /my-site/arcmoon.config.js
+  ' !]
+  [Text]Run from another folder, it says [hl = text: "no arcmoon.config.js in …" !]: the config is only read from where you run [hl = text: "arcm" !].[end:Text]
+
+  [Title = size: 3, id: "cmd-audit"]arcm audit[end:Title]
+  [Text]Shows what the code in a page would do, for your files and for each template it uses, without running anything. Here a page uses a header from a folder outside the project:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm audit pages/index.arcm
+  ' !]
+  [Code = lang: "log", text: '
+    pages/index.arcm
+      Your files (1):
+        (no code)
+
+      Template "../theme" (⚠ not trusted):
+        fetch      api.example.com
+        env        API_KEY
+  ' !]
+  [Text]The template calls [hl = text: "api.example.com" !] and reads the [hl = text: "API_KEY" !] environment variable while building. See [Link = text: "Templates and trust", href: "#protector" !].[end:Text]
+
+  [Title = size: 3, id: "cmd-trust"]arcm trust[end:Title]
+  [Text]Trusts the templates a page or folder uses, after you have reviewed them. Until then, [hl = text: "arcm build" !] stops with the report and runs nothing:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm trust pages/index.arcm
+  ' !]
+  [Code = lang: "log", text: '
+    ✓ Trusted "../theme" (sha256-27197bd1888d…)
+        fetch      api.example.com
+        env        API_KEY
+
+    Saved to arcmoon.trust.json. If a template changes, ArcMoon asks again.
+  ' !]
+  [Text][strong][hl = text: "--list" !][end] shows what you trust, and when:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm trust --list
+    ../theme  (trusted 2026-10-14T08:56:36.358Z)
+  ' !]
+
+  [Title = size: 3, id: "cmd-untrust"]arcm untrust[end:Title]
+  [Text]Stops trusting templates, by the names [hl = text: "trust --list" !] shows:[end:Text]
+  [Code = lang: "bash", text: '
+    arcm untrust ../theme
+    ✓ Untrusted "../theme"
+  ' !]
+
+  [Title = size: 3, id: "cmd-lex"]arcm --lex and --parse[end:Title]
+  [Text]For debugging ArcMoon itself, or a file that won\'t build: [hl = text: "--lex" !] prints the tokens, [hl = text: "--parse" !] the syntax tree, as JSON. For this file:[end:Text]
+  [Code = text: '
+    [p = class: "x"]Hi[end]
+  ' !]
+  [Code = lang: "text", title: "arcm --lex tiny.arcm (types and values)", text: '
+    OPEN_BRACKET "["   IDENTIFIER "p"   EQUAL "="   KEY "class"   COLON ":"   STRING "x"   CLOSE_BRACKET "]"
+    TEXT "Hi"   OPEN_BRACKET "["   END_KEYWORD "end"   CLOSE_BRACKET "]"   EOF ""
+  ' !]
+  [Code = lang: "json", title: "arcm --parse tiny.arcm (shortened)", text: '
+    [
+      {
+        "type": "Block",
+        "id": "p",
+        "props": { "class": "x" },
+        "isSelfClosing": false,
+        "body": [{ "type": "Text", "text": "Hi" }]
+      }
+    ]
+  ' !]
+  [Text]The full output also has each token\'s and block\'s place in the file.[end:Text]
+
+  [Title = size: 3, id: "cmd-version"]arcm -v and -h[end:Title]
+  [Code = lang: "bash", text: '
+    arcm -v      # 1.0.0
+    arcm -h      # every command, with short examples
+  ' !]
+
+  [Title = id: "config"]arcmoon.config.js[end:Title]
+  [Text][hl = text: "arcm init" !] creates the config in the current folder. Every option, with its default:[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default {
+      importAliases: { "@": "./src" },   // short names for folders in [import] paths
+      removeComments: true,              // leave # comments out of the HTML
+      timeout: 5000,                     // ms each page\'s ${ }$ code may run
+      bundle: [],                        // npm packages allowed in runtime code
+      outDir: "./dist",                  // where arcm build writes
+      externalScripts: false,            // true: JavaScript in files, not inside the HTML
+      externalStyles: false,             // true: CSS in files, not inside the HTML
+      assetsDir: "assets",               // folder inside outDir for JS, CSS and url() files
+      base: undefined                    // e.g. "/": file URLs from the site root
+    };
+  ' !]
+  [Text]ArcMoon reads it [strong]only from the folder you run [hl = text: "arcm" !] in[end], never from a parent folder. Run [hl = text: "arcm" !] from your project folder. [hl = text: "arcm show config" !] prints what it found.[end:Text]
+
+  [Title = id: "options"]The options[end:Title]
+  [Text]Every option is optional: leave one out, and its default is used.[end:Text]
+
+  [Title = size: 3, id: "opt-importAliases"]importAliases[end:Title]
+  [Text]Short names for folders, used at the start of [hl = text: "[import]" !] paths. Default: none.[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default {
+      importAliases: { "@": "./src", "~ui": "./src/components" }
+    };
+  ' !]
+  [Code = text: '
+    # in any file, however deep
+    [import = Card: "@/components/Card.arcm" !]   # → ./src/components/Card.arcm
+    [import = Badge: "~ui/Badge.arcm" !]          # → ./src/components/Badge.arcm
+  ' !]
+  [Text]Targets start from the project folder. Without the alias, a page in [hl = text: "pages/blog/" !] would need [hl = text: "../../src/components/Card.arcm" !]. More in [Link = text: "Import aliases", href: "components.html#aliases" !].[end:Text]
+
+  [Title = size: 3, id: "opt-removeComments"]removeComments[end:Title]
+  [Text]Whether [hl = text: "#" !] and [hl = text: "###" !] comments are left out of the HTML. Default: [hl = text: "true" !].[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { removeComments: false };
+  ' !]
+  [Code = text: '
+    # Page header
+    [h1]Home[end]
+  ' !]
+  [Code = lang: "html", title: "HTML with removeComments: false", text: '
+    <!-- Page header-->
+    <h1>Home</h1>
+  ' !]
+  [Text]With the default, the HTML is just [hl = text: "<h1>Home</h1>", selectColor: 1 !]. Keep comments when they should ship with the page, like a license note. More in [Link = text: "Comments", href: "comments.html#keep" !].[end:Text]
+
+  [Title = size: 3, id: "opt-timeout"]timeout[end:Title]
+  [Text]How many milliseconds each page\'s [hl = text: "${ }$" !] code may run, its components included. Default: [hl = text: "5000" !] (5 seconds).[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { timeout: 10000 };   // 10 seconds, for pages that fetch a slow API
+  ' !]
+  [Text]Code that takes longer is stopped: endless loops, timers and pending requests all end, and the build stops with:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ ${ }$ code took longer than 10000 ms and was stopped
+      pages/stats.arcm
+  ' !]
+  [Text]Raise it only if a page really needs the time. A page that hangs usually has a bug, and the timeout is what stops it.[end:Text]
+
+  [Title = size: 3, id: "opt-bundle"]bundle[end:Title]
+  [Text]The npm packages runtime code may import. Default: none. Runtime code goes to every visitor, so ArcMoon only bundles packages you list:[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { bundle: ["canvas-confetti", "dayjs"] };
+  ' !]
+  [Code = text: '
+    runtime ${ import confetti from "canvas-confetti"; }$
+    [button = onclick: runtime ${ () => confetti() }$]Party[end]
+  ' !]
+  [Text]Install the package first ([hl = text: "npm install canvas-confetti" !]). Without the entry, the build stops:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ runtime import "canvas-confetti" is not listed in bundle (arcmoon.config.js)
+  ' !]
+  [Text]Not needed for [hl = text: "arcmoon/reactive" !], your own [hl = text: ".js" !] files, packages used only in [hl = text: "${ }$" !] (they never reach the browser), or CSS [hl = text: "@import" !]s.[end:Text]
+
+  [Title = size: 3, id: "opt-outDir"]outDir[end:Title]
+  [Text]The folder [hl = text: "arcm build" !] writes into. Default: [hl = text: "\"./dist\"" !].[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { outDir: "./public" };
+  ' !]
+  [Code = lang: "text", text: '
+    arcm build pages/about.arcm
+    ✓ pages/about.arcm → public/about.html  14 B
+  ' !]
+  [Text][hl = text: "-o" !] on the command line wins over it: [hl = text: "arcm build pages/blog -o public/blog" !].[end:Text]
+
+  [Title = size: 3, id: "opt-externalScripts"]externalScripts[end:Title]
+  [Text]Where each page\'s JavaScript goes. Default: [hl = text: "false" !], inside the HTML in a [hl = text: "<script>" !].[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { externalScripts: true };
+  ' !]
+  [Code = lang: "text", title: "dist/", text: '
+    index.html              <script type="module" src="./assets/index-MTLSBKEV.js">
+    assets/
+      index-MTLSBKEV.js     this page\'s code
+      chunks/
+        chunk-E7XXX4QS.js   code shared by pages, like arcmoon/reactive
+  ' !]
+  [List]
+    [Item][strong]Inside (default):[end] one file per page, nothing else to copy. Good for small sites and single pages.[end:Item]
+    [Item][strong]In files:[end] shared code is downloaded once and cached across pages. Good for sites with many pages.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "opt-externalStyles"]externalStyles[end:Title]
+  [Text]Where each page\'s CSS goes. Default: [hl = text: "false" !], inside the HTML in a [hl = text: "<style>" !].[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { externalStyles: true };
+  ' !]
+  [Code = lang: "text", title: "dist/", text: '
+    index.html              <link rel="stylesheet" href="./assets/index-IH2BDP4O.css">
+    assets/
+      index-IH2BDP4O.css    all of this page\'s CSS
+  ' !]
+  [Text]It is separate from [hl = text: "externalScripts" !]: you can have the JavaScript in files and the CSS inside the page, or the other way round.[end:Text]
+
+  [Title = size: 3, id: "opt-assetsDir"]assetsDir[end:Title]
+  [Text]The folder inside [hl = text: "outDir" !] for JavaScript and CSS files, and for [hl = text: "url()" !] files copied from CSS. Default: [hl = text: "\"assets\"" !].[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { externalScripts: true, assetsDir: "static" };
+  ' !]
+  [Code = lang: "text", title: "dist/", text: '
+    index.html              <script type="module" src="./static/index-QZCVOMHP.js">
+    static/
+      index-QZCVOMHP.js
+  ' !]
+
+  [Title = size: 3, id: "opt-base"]base[end:Title]
+  [Text]How pages link to those files. Default: relative to each page ([hl = text: "./assets/…" !]). Set it to the URL where [hl = text: "outDir" !] is served:[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { externalScripts: true, base: "/" };
+  ' !]
+  [Code = lang: "html", text: '
+    <!-- default -->
+    <script type="module" src="./assets/index-MTLSBKEV.js"></script>
+    <!-- base: "/" -->
+    <script type="module" src="/assets/index-MTLSBKEV.js"></script>
+  ' !]
+  [List]
+    [Item]Use it when pages are served from paths that don\'t match their files, for example by a server that rewrites URLs.[end:Item]
+    [Item]Keep the default when you build subfolders with [hl = text: "-o" !]: each [hl = text: "-o" !] build gets its own [hl = text: "assets/" !] ([hl = text: "dist/blog/assets/" !]), and relative links find it. With [hl = text: "base: \"/\"" !], a page in [hl = text: "dist/blog/" !] would link to [hl = text: "/assets/…" !] and miss it.[end:Item]
+  [end:List]
+
+  [Title = id: "output"]What the build writes[end:Title]
+  [Text]By default each page is one HTML file, with its JavaScript and CSS inside. With [hl = text: "externalScripts" !] and [hl = text: "externalStyles" !], they move to files:[end:Text]
+  [Code = lang: "text", title: "dist/", text: '
+    index.html              <link rel="stylesheet" href="./assets/index-ECRIFUJ2.css">
+                            <script type="module" src="./assets/index-QZCVOMHP.js">
+    about.html
+    assets/
+      index-ECRIFUJ2.css    the page\'s CSS
+      index-QZCVOMHP.js     the page\'s own JavaScript
+      about-2BJV5KWY.js
+      chunks/
+        chunk-E7XXX4QS.js   code shared by pages, downloaded once
+  ' !]
+  [List]
+    [Item]The letters in a file name change when its content changes, so browsers can cache files safely.[end:Item]
+    [Item]Code used by several pages, like [hl = text: "arcmoon/reactive" !], goes to [hl = text: "chunks/" !] once.[end:Item]
+    [Item]Each page\'s CSS file holds all of that page\'s CSS.[end:Item]
+    [Item]Pages with no JavaScript get no script.[end:Item]
+    [Item]Files the last build wrote and this one doesn\'t need are removed (ArcMoon keeps a list in [hl = text: ".arcmoon-files.json" !]). Your own files in [hl = text: "assets/" !] are left alone.[end:Item]
+  [end:List]
+
+  [Title = id: "protector"]Templates and trust[end:Title]
+  [Text]
+    [hl = text: "${ }$" !] code runs on your computer with full access. So [hl = text: ".arcm" !] files you didn\'t write, from an npm
+    package or a folder outside your project, are never run until you trust them. ArcMoon shows what they would do instead, and runs nothing:
+  [end:Text]
+  [Code = lang: "log", text: '
+    ⚠ Template "../external/blog" is not trusted. It would:
+        import     node:fs (read/write)
+        fetch      api.example.com
+        env        API_KEY
+      Review it, then run "arcmoon trust ../external/blog".
+      Nothing was run.
+  ' !]
+  [List]
+    [Item][hl = text: "arcm audit pages" !] prints the same report for your files and every template, without building.[end:Item]
+    [Item][hl = text: "arcm trust pages" !] trusts the templates those pages use. Trust is saved in [hl = text: "arcmoon.trust.json" !], with a hash of each template.[end:Item]
+    [Item]If a trusted template changes, ArcMoon asks again.[end:Item]
+    [Item]Trust means you looked; it doesn\'t make code safe. Only trust what you have read.[end:Item]
+  [end:List]
+
+  [Title = id: "messages"]Messages[end:Title]
+  [Text]Errors show the message, the place, and the line with a [hl = text: "^" !] under the spot. Warnings take one line:[end:Text]
+  [Code = lang: "log", text: '
+    ⚠ ok.arcm:2:7  ${ title }$ is undefined (prop "title" wasn\'t passed)
+    ✗ unquoted value AKZB for prop "id"; write "AKZB" (only true / false and numbers may be unquoted)
+  ' !]
+  [Code = lang: "text", text: '
+      page.arcm:2:15
+
+        1 | [main]
+      > 2 |   [User = id: AKZB !]
+          |                ^
+        3 | [end]
+  ' !]
+  [Text]Colors turn off by themselves in CI, pipes and files, or with [hl = text: "NO_COLOR" !].[end:Text]
+[end:Docs]

@@ -1,0 +1,323 @@
+# ###################
+# Docs: Reactivity
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+${
+  import { readFileSync } from "node:fs";
+  const alienLogo = "data:image/webp;base64," + readFileSync(new URL("../../src/alien-logo-240.webp", import.meta.url)).toString("base64");
+}$
+
+[Docs = slug: "reactivity"]
+  [div = class: "alien"]
+    [img = src: ${ alienLogo }$, alt: "The alien-signals logo", width: 112, height: 112 !]
+    [p]
+      ArcMoon\'s reactivity is powered by [Link = text: "alien-signals", href: "https://github.com/stackblitz/alien-signals" !],
+      a small, fast signals library.
+      [span = class: "alien-links"]
+        [Link = text: "GitHub", href: "https://github.com/stackblitz/alien-signals" !] ·
+        [Link = text: "Docs", href: "https://github.com/stackblitz/alien-signals#readme" !] ·
+        [Link = text: "npm", href: "https://www.npmjs.com/package/alien-signals" !]
+      [end]
+    [end]
+  [end]
+
+  [Title = id: "what"]What it is[end:Title]
+  [Text]
+    [hl = text: "arcmoon/reactive" !] is a small, optional library for [Link = text: "runtime code", href: "runtime.html" !].
+    ArcMoon uses alien-signals for it, and gives you exactly three of its functions: [hl = text: "signal" !],
+    [hl = text: "computed" !] and [hl = text: "effect" !]. Use them when something on the page should update by itself;
+    events and refs work without them.
+  [end:Text]
+  [Code = text: '
+    runtime ${ import { signal, computed, effect } from "arcmoon/reactive"; }$
+  ' !]
+  [List]
+    [Item]It needs no [hl = text: "bundle" !] entry, and only works in runtime code, not in [hl = text: "${ }$" !].[end:Item]
+    [Item]Only these three names exist. Anything else stops the build at the import:[end:Item]
+  [end:List]
+  [Code = lang: "log", text: '
+    ✗ page.arcm:1:21  "effectScope" is not in arcmoon/reactive; it has signal, computed and effect
+  ' !]
+  [Text]Don\'t import [hl = text: "alien-signals" !] directly: it adds a second copy to the page, and live values don\'t follow its signals.[end:Text]
+
+  [Title = id: "why"]Why reactivity[end:Title]
+
+  [Title = size: 3, id: "problem"]The problem: keeping the page in sync[end:Title]
+  [Text]When data changes in the browser, every place that shows it must change too. Without reactivity, you update each place by hand:[end:Text]
+  [Code = title: "index.arcm", file: "src/samples/reactivity/by-hand.arcm" !]
+  [Text]One number appears in three places, so the click handler must update all three. Add a fourth place and you must remember to update it there too; forget one and the page shows old data.[end:Text]
+
+  [Title = size: 3, id: "solution"]The fix: describe it once[end:Title]
+  [Text]With a signal, you write [strong]what[end] each place shows, once. When the signal changes, ArcMoon updates every place that reads it. Click Add:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(0);
+    }$
+    [p]Items: runtime ${ count() }$[end]
+    [p]runtime ${ 10 - count() }$ left[end]
+    [button = onclick: runtime ${ () => count(count() + 1) }$, disabled: runtime ${ count() >= 10 }$]Add[end]
+  ' !]
+  [Text]The click handler only changes the data. The text, the count left and the disabled button follow by themselves.[end:Text]
+
+  [Title = size: 3, id: "how-it-works"]How it works[end:Title]
+  [List]
+    [Item]A live value that reads a signal remembers that it read it.[end:Item]
+    [Item]When the signal is set, ArcMoon re-runs only those live values, and changes only their text or attribute.[end:Item]
+    [Item]Nothing else on the page is touched: no re-render, no virtual DOM. The HTML stays the HTML ArcMoon built.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "why-alien"]Why alien-signals[end:Title]
+  [Text]
+    ArcMoon pages are plain HTML, so the reactivity must be small and only update the exact spots that change.
+    alien-signals does just that: a tiny, fast signals library, adding about 4 kB to a page that uses live values.
+    ArcMoon doesn\'t reinvent it; [hl = text: "arcmoon/reactive" !] passes it through, and only changes [hl = text: "effect" !]
+    to keep a returned function as cleanup. If you prefer React, Vue or another library, you can still import it as an npm package.
+  [end:Text]
+
+  [Title = id: "signal"]signal[end:Title]
+  [Text]A signal is a box that holds one value. You can look inside it, put a new value in it, and anything that looked inside is told when it changes. Here is a like button:[end:Text]
+  [Code = text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const likes = signal(0);              // 1. a box that holds 0
+    }$
+    [p]runtime ${ likes() }$ likes[end]       # 2. read the box: shows 0
+    [button = onclick: runtime ${ () => likes(likes() + 1) }$]Like[end]   # 3. put a new value in it
+  ' !]
+  [List]
+    [Item][strong]1. Create:[end] [hl = text: "signal(0)" !] makes the box and puts [hl = text: "0" !] in it. [hl = text: "likes" !] is the box.[end:Item]
+    [Item][strong]2. Read:[end] [hl = text: "likes()" !], with empty brackets, gives what is inside: [hl = text: "0" !]. Because the [hl = text: "[p]" !] read it, ArcMoon remembers that this text depends on [hl = text: "likes" !].[end:Item]
+    [Item][strong]3. Set:[end] [hl = text: "likes(1)" !], with a value, puts [hl = text: "1" !] in the box. [hl = text: "likes(likes() + 1)" !] reads the old value and puts in one more.[end:Item]
+    [Item][strong]4. Update:[end] the box tells everything that read it. The [hl = text: "[p]" !] now shows [hl = text: "1 likes" !], without any code to change it.[end:Item]
+  [end:List]
+  [Text]A signal can hold any value: a number, text, [hl = text: "true" !] / [hl = text: "false" !], an array, an object. Try it:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const likes = signal(0);
+      const liked = signal(false);
+    }$
+    [p]runtime ${ likes() }$ likes[end]
+    [button = onclick: runtime ${ () => { likes(likes() + (liked() ? -1 : 1)); liked(!liked()); } }$]
+      runtime ${ liked() ? "Unlike" : "Like" }$
+    [end]
+  ' !]
+  [Text]Two signals, [hl = text: "likes" !] and [hl = text: "liked" !]: the click changes both, and the count and the button text follow.[end:Text]
+
+  [Title = id: "computed"]computed[end:Title]
+  [Text]Often a value isn\'t data of its own, but something worked out from other data. Say a shop shows a total that depends on the price and the quantity. You could keep the total in its own signal:[end:Text]
+  [Code = text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const price = signal(4.5);
+      const qty = signal(1);
+      const total = signal(4.5);   // ✗ a copy you must keep right by hand
+    }$
+    [button = onclick: runtime ${ () => { qty(qty() + 1); total(price() * qty()); } }$]+1[end]
+  ' !]
+  [Text]Now every place that changes [hl = text: "price" !] or [hl = text: "qty" !] must also remember to update [hl = text: "total" !]. Miss one, and the total is wrong. [hl = text: "computed" !] fixes that: you write the formula once, and it always gives the right answer:[end:Text]
+  [Code = text: '
+    runtime ${
+      import { signal, computed } from "arcmoon/reactive";
+      const price = signal(4.5);
+      const qty = signal(1);
+      const total = computed(() => price() * qty());   // ✓ worked out from the two signals
+    }$
+    [p]Total: runtime ${ total() }$[end]
+    [button = onclick: runtime ${ () => qty(qty() + 1) }$]+1[end]   # only change the data
+  ' !]
+  [List]
+    [Item]You give [hl = text: "computed" !] a function. It reads [hl = text: "price()" !] and [hl = text: "qty()" !], so it depends on both.[end:Item]
+    [Item]You read it like a signal: [hl = text: "total()" !]. You never set it.[end:Item]
+    [Item]When [hl = text: "price" !] or [hl = text: "qty" !] changes, [hl = text: "total" !] is worked out again, and everything showing it updates.[end:Item]
+    [Item]It remembers its result, so reading it many times costs nothing until an input changes.[end:Item]
+  [end:List]
+  [Text]It works for lists too. Type to search the names:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    runtime ${
+      import { signal, computed } from "arcmoon/reactive";
+      const names = ["Adam", "Elmi", "Eid", "Ismail"];
+      const search = signal("");
+      const found = computed(() => names.filter((n) => n.toLowerCase().includes(search().toLowerCase())));
+    }$
+    [input = placeholder: "Search", oninput: runtime ${ (e) => search(e.target.value) }$ !]
+    [p]runtime ${ found().length }$ found: runtime ${ found().join(", ") }$[end]
+  ' !]
+  [Text]Typing only sets [hl = text: "search" !]. [hl = text: "found" !] works out the matching names from it, and the count and the list follow.[end:Text]
+
+  [Title = id: "effect"]effect[end:Title]
+  [Text]Live values show data on the page. But sometimes a change must do something else: save to storage, change the page title, start a timer. That is what [hl = text: "effect" !] is for. Here a theme choice is saved, so it\'s still there after a reload:[end:Text]
+  [Code = text: '
+    runtime ${
+      import { signal, effect } from "arcmoon/reactive";
+      const theme = signal(localStorage.getItem("theme") ?? "light");   // 1. start from the saved choice
+
+      effect(() => {
+        localStorage.setItem("theme", theme());   // 2. runs now, and 3. again on every change
+      });
+    }$
+    [button = onclick: runtime ${ () => theme(theme() === "light" ? "dark" : "light") }$]
+      Theme: runtime ${ theme() }$
+    [end]
+  ' !]
+  [List]
+    [Item][strong]1.[end] The signal starts from the saved value, or [hl = text: "\"light\"" !] the first time.[end:Item]
+    [Item][strong]2. Runs now:[end] the effect runs once right away. While it runs, it reads [hl = text: "theme()" !], so it now depends on [hl = text: "theme" !].[end:Item]
+    [Item][strong]3. Runs again:[end] each click sets [hl = text: "theme" !], so the effect runs again and saves the new value. You never call it yourself.[end:Item]
+  [end:List]
+  [Text][strong]Cleaning up.[end] Some work must be undone before it runs again, like a timer: start a new one without stopping the old, and you have two. Return a function from the effect, and it runs before the next run (and when the effect stops). Pause the timer:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    runtime ${
+      import { signal, effect } from "arcmoon/reactive";
+      const running = signal(true);
+      const seconds = signal(0);
+      effect(() => {
+        if (!running()) return;                                   // paused: no timer
+        const id = setInterval(() => seconds(seconds() + 1), 1000);
+        return () => clearInterval(id);                           // stop it before the next run
+      });
+    }$
+    [p]runtime ${ seconds() }$ seconds[end]
+    [button = onclick: runtime ${ () => running(!running()) }$]runtime ${ running() ? "Pause" : "Resume" }$[end]
+  ' !]
+  [List]
+    [Item]The effect reads [hl = text: "running()" !], so it runs again on each Pause / Resume.[end:Item]
+    [Item]Before it does, the returned function stops the old timer. Paused, it returns early and starts nothing.[end:Item]
+    [Item][hl = text: "seconds()" !] inside the timer\'s callback is read later, not while the effect runs, so it doesn\'t make the effect run again.[end:Item]
+    [Item][hl = text: "effect()" !] gives back a function that stops it for good: [hl = text: "const stop = effect(…); stop();" !].[end:Item]
+  [end:List]
+  [Text]Use an effect only for work outside the page\'s live values. To show a value, use a live value or [hl = text: "computed" !].[end:Text]
+
+  [Title = id: "which"]Which one to use[end:Title]
+  [List]
+    [Item]Data that changes (typed text, a count, a list): [hl = text: "signal" !].[end:Item]
+    [Item]A value worked out from other signals: [hl = text: "computed" !].[end:Item]
+    [Item]Show a value or set an attribute: a live value, like [hl = text: "runtime ${ count() }$" !]. No effect needed.[end:Item]
+    [Item]Do something outside the live values (timer, title, storage, a library): [hl = text: "effect" !].[end:Item]
+    [Item]Only react to a click, with nothing to keep in sync: an event, no signal at all.[end:Item]
+  [end:List]
+
+  [Title = id: "lists"]Lists that change[end:Title]
+  [Text]
+    [hl = text: "[for-each]" !] runs while building, so it can't repeat elements later. Keep the list in a signal,
+    set a new array to change it, and draw it with an effect and a ref:
+  [end:Text]
+  [Playground = title: "index.arcm", text: '
+    [ul = arcm-ref: "list"][end]
+    [button = onclick: runtime ${ () => items([...items(), "Item " + (items().length + 1)]) }$]Add[end]
+    [button = onclick: runtime ${ () => items(items().slice(0, -1)) }$]Remove last[end]
+    runtime ${
+      import { signal, effect } from "arcmoon/reactive";
+      const items = signal(["Item 1"]);
+      const list = ArcMoon.ref(ArcMoon.defineRef("list"));
+      effect(() => {
+        list.replaceChildren(...items().map((text) => Object.assign(document.createElement("li"), { textContent: text })));
+      });
+    }$
+  ' !]
+  [Text]Don\'t change an array or object in place: [hl = text: "items().push(x)" !] changes the array, but no signal is set, so nothing updates. Set a new one: [hl = text: "items([...items(), x])" !].[end:Text]
+
+  [Title = id: "sharing"]Sharing between components[end:Title]
+  [Text]Each file has its own runtime variables. To share a signal, put it in a [hl = text: ".js" !] file and import it where you need it. A page imports it once, so every component gets the same signal:[end:Text]
+  [Code = lang: "js", title: "store.js", file: "src/samples/reactivity/store.js" !]
+  [Code = title: "Adder.arcm", text: '
+    runtime ${ import { total } from "./store.js"; }$
+    [button = onclick: runtime ${ () => total(total() + 1) }$]Add[end]
+  ' !]
+  [Code = title: "Show.arcm", text: '
+    runtime ${ import { total } from "./store.js"; }$
+    [p]Total: runtime ${ total() }$[end]
+  ' !]
+  [Text]Clicking Add in one component updates the total in the other.[end:Text]
+
+  [Title = id: "first-render"]The first value is in the HTML[end:Title]
+  [Text]When a live value is exactly [hl = text: "name()" !] and the signal starts from a literal or an exported value, ArcMoon writes that first value into the HTML, so it shows before the script runs:[end:Text]
+  [Code = text: '
+    ${ export const start = 5; }$
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const a = signal(0);       // written as 0
+      const b = signal(start);   // written as 5
+    }$
+    [p]runtime ${ a() }$ runtime ${ b() }$ runtime ${ a() + b() }$[end]
+  ' !]
+  [Text]Anything else, like [hl = text: "a() + b()" !] or a computed value, is empty until the script runs.[end:Text]
+
+  [Title = id: "mistakes"]Mistakes[end:Title]
+
+  [Title = size: 3, id: "no-call"]Forgetting the ()[end:Title]
+  [Text]A signal is a function. Without [hl = text: "()" !] the page shows the function, not its value:[end:Text]
+  [Code = text: '
+    # ✗ shows "function () { [native code] }"
+    [p]runtime ${ count }$[end]
+
+    # ✓ right
+    [p]runtime ${ count() }$[end]
+  ' !]
+
+  [Title = size: 3, id: "mutate"]Changing an array in place[end:Title]
+  [Code = text: '
+    # ✗ the array changes, but nothing updates
+    [button = onclick: runtime ${ () => items().push("Tea") }$]Add[end]
+
+    # ✓ set a new array
+    [button = onclick: runtime ${ () => items([...items(), "Tea"]) }$]Add[end]
+  ' !]
+
+  [Title = size: 3, id: "plain-variable"]Using a plain variable[end:Title]
+  [Code = text: '
+    # ✗ count changes, but the page keeps showing 0
+    runtime ${ let count = 0; }$
+    [button = onclick: runtime ${ () => count++ }$]runtime ${ count }$[end]
+
+    # ✓ use a signal
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(0);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]runtime ${ count() }$[end]
+  ' !]
+[end:Docs]
+
+[style]
+  .alien {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 0 0 28px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .alien img {
+    flex: none;
+    width: 112px;
+    height: 112px;
+  }
+  .alien p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .alien-links {
+    display: block;
+    margin-top: 6px;
+    font-size: 14px;
+  }
+  @media (max-width: 560px) {
+    .alien img {
+      width: 72px;
+      height: 72px;
+    }
+  }
+[end]

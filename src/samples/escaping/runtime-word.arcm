@@ -1,0 +1,3 @@
+${ const version = "1.0"; }$
+[p]The \runtime ${ version }$ is out.[end]
+[p]The runtime is fast.[end]

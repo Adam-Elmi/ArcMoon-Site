@@ -1,0 +1,90 @@
+# ###################
+# Docs: Props
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "props"]
+  [Title = id: "write"]Writing props[end:Title]
+  [Text]Props go after [hl = text: "=" !] as [hl = text: "name: value" !], separated by commas. On an element they become attributes:[end:Text]
+  [Code = output: true, text: '
+    [a = href: "/docs", class: "link"]Docs[end]
+    [a =
+      href: "/blog",
+      class: "link"
+    ]Blog[end]
+  ' !]
+  [Text]Long prop lists can go on several lines.[end:Text]
+
+  [Title = id: "values"]Values[end:Title]
+  [Code = output: true, text: '
+    [input = type: "number", min: 0, step: 0.5, required: true, disabled: false !]
+    [p = title: ${ "Built " + 2026 }$]Hover me[end]
+  ' !]
+  [List]
+    [Item][hl = text: "\"text\"" !] or [hl = text: "'text'" !]: a string. [hl = text: "\"\"" !] writes an empty attribute.[end:Item]
+    [Item][hl = text: "0" !], [hl = text: "-2" !], [hl = text: "0.5" !]: a number, written as text.[end:Item]
+    [Item][hl = text: "true" !] writes the attribute alone; [hl = text: "false" !] leaves it out.[end:Item]
+    [Item][hl = text: "${ }$" !]: a value from build-time code: text, a number or a boolean. [hl = text: "null" !], [hl = text: "undefined" !] and [hl = text: "false" !] leave the attribute out. Objects and arrays stop the build.[end:Item]
+    [Item][hl = text: "runtime ${ }$" !]: a value that changes in the browser. See [Link = text: "Runtime code", href: "runtime.html" !].[end:Item]
+  [end:List]
+
+  [Title = id: "quotes"]Quotes inside a value[end:Title]
+  [Text]Only the quote you used needs a backslash:[end:Text]
+  [Code = output: true, pretty: false, file: "src/samples/props/quotes.arcm" !]
+
+  [Title = id: "multi-line"]Multi-line values[end:Title]
+  [Text]A quoted value can span lines, so long text stays easy to read in your code. This helps most with component props:[end:Text]
+  [Code = title: "Card.arcm", file: "src/samples/props/Card.arcm" !]
+  [Code = title: "index.arcm", output: true, pretty: false, file: "src/samples/props/use-card.arcm" !]
+  [List]
+    [Item]The value keeps its line breaks and spaces, exactly as written.[end:Item]
+    [Item]In text, the browser shows line breaks as spaces: the description reads as one paragraph.[end:Item]
+    [Item]In an attribute like [hl = text: "title" !], the line breaks stay in the tooltip.[end:Item]
+  [end:List]
+
+  [Title = id: "names"]Names[end:Title]
+  [Text]Attributes keep the name exactly as written. Quote a name that has other characters:[end:Text]
+  [Code = output: true, text: '
+    [svg = viewBox: "0 0 10 10", "xmlns:xlink": "http://www.w3.org/1999/xlink" !]
+  ' !]
+
+  [Title = id: "style"]Style props[end:Title]
+  [Text][hl = text: "--name" !] and [hl = text: "css.name" !] go into [hl = text: "style" !], in the order written:[end:Text]
+  [Code = output: true, text: '
+    [p = css.color: "crimson", --gap: "8px"]Red[end]
+  ' !]
+  [Text]More in [Link = text: "Styles", href: "styles.html" !].[end:Text]
+
+  [Title = id: "arcm"]arcm- props[end:Title]
+  [Text]Props starting with [hl = text: "arcm-" !] are for ArcMoon, not for the browser. They are not written as attributes:[end:Text]
+  [List]
+    [Item][hl = text: "arcm-raw: true" !]: write the body as it is, without reading blocks or comments in it.[end:Item]
+    [Item][hl = text: "arcm-ref: \"name\"" !]: one element runtime code can find with [hl = text: "ArcMoon.ref()" !].[end:Item]
+    [Item][hl = text: "arcm-shared-ref: \"name\"" !]: many elements, found with [hl = text: "ArcMoon.refs()" !].[end:Item]
+    [Item][hl = text: "arcm-syntax: \"css\"" !] [strong](experimental)[end]: names the body's language for editors. No editor uses it yet, and nothing changes in the HTML.[end:Item]
+  [end:List]
+  [Code = output: true, text: '
+    [pre = arcm-raw: true][b] and # stay as written[end]
+    [div = arcm-ref: "box"]Found by runtime code[end]
+    runtime ${ ArcMoon.ref(ArcMoon.defineRef("box")).dataset.ready = "yes"; }$
+  ' !]
+  [Text]A ref becomes a [hl = text: "data-arcm-ref" !] id the browser code uses. Other [hl = text: "arcm-" !] names are left out. More in [Link = text: "Runtime code", href: "runtime.html" !].[end:Text]
+
+  [Title = id: "components"]Props on components[end:Title]
+  [Text]A component reads its props with [hl = text: "ArcMoon.props()" !]. It can also take values without a name, by position. See [Link = text: "Components", href: "components.html" !].[end:Text]
+
+  [Title = id: "mistakes"]Mistakes[end:Title]
+  [Code = lang: "log", text: '
+    ✗ unquoted value AKZB for prop "id"; write "AKZB" (only true / false and numbers may be unquoted)
+    ✗ prop "id" is written twice
+    ✗ prop "class" on [p] is an object; attributes must be text, numbers or booleans
+    ⚠ page.arcm:1:1  positional value "first" on [p] is not used; HTML elements only take named props (key: value)
+  ' !]
+[end:Docs]

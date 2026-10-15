@@ -1,0 +1,401 @@
+# ###################
+# Docs: Runtime code
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+[import = Note: "@/components/docs/Note.arcm" !]
+
+[Docs = slug: "runtime"]
+  [Title = id: "what"]What it is[end:Title]
+  [Text][hl = text: "runtime ${ }$" !] is plain JavaScript that runs in the visitor's browser, after the page loads. Click the button:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    [button = onclick: runtime ${ (e) => (e.currentTarget.textContent = "Thanks!") }$]
+      Click me
+    [end]
+  ' !]
+  [List]
+    [Item][hl = text: "${ }$" !] runs once, while building, and writes HTML. [hl = text: "runtime ${ }$" !] runs in the browser and can change the page.[end:Item]
+    [Item]ArcMoon bundles the runtime code with esbuild and adds it to the page. Pages without it ship no JavaScript.[end:Item]
+  [end:List]
+
+  [Title = id: "how"]How it works[end:Title]
+
+  [Title = size: 3, id: "how-browser"]It runs in the browser, after the page loads[end:Title]
+  [Text]The code goes into the page's script and runs when the page opens. It only exists in pages ArcMoon builds as HTML.[end:Text]
+  [Code = text: '
+    runtime ${ console.log("Opened at", new Date().toLocaleTimeString()); }$
+  ' !]
+
+  [Title = size: 3, id: "how-copies"]Each use of a component runs its own copy[end:Title]
+  [Text]Every use gets its own refs, signals and exported values:[end:Text]
+  [Code = title: "Counter.arcm", text: '
+    ${ const { start = 0 } = ArcMoon.props(); export const initial = start; }$
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(initial);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]runtime ${ count() }$[end]
+  ' !]
+  [Code = title: "index.arcm", text: '
+    [import = Counter: "./Counter.arcm" !]
+    [Counter = start: 5 !]    # counts from 5
+    [Counter = start: 10 !]   # counts from 10, on its own
+  ' !]
+
+  [Title = id: "rules"]Rules[end:Title]
+  [Text]Break one of these and your code stops the build, fails in the browser, or doesn't do what you expect.[end:Text]
+
+  [Title = size: 3, id: "rule-worlds"]1. Build time and the browser are two worlds[end:Title]
+  [Text][hl = text: "${ }$" !] and [hl = text: "runtime ${ }$" !] can't see each other's variables or imports, in either direction:[end:Text]
+  [Code = text: '
+    # ✗ the browser can\'t see a build-time variable
+    ${ const name = "Adam"; }$
+    runtime ${ console.log(name); }$
+
+    # ✗ the build can\'t see a runtime variable
+    runtime ${ const size = 3; }$
+    [p]${ size }$[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-export"]2. Only exported values cross over[end:Title]
+  [Text]Export a build-time value to use it in the browser. It is copied once, while building, and only goes that way:[end:Text]
+  [Code = text: '
+    # ✓ right
+    ${ export const name = "Adam"; }$
+    runtime ${ console.log(name); }$
+  ' !]
+
+  [Title = size: 3, id: "rule-kinds"]3. Where you write it decides its kind[end:Title]
+  [Text]At the top level it's a code block: any statements. Inside markup or a prop it's a live value: one expression.[end:Text]
+  [Code = text: '
+    # code block: statements, imports, functions
+    runtime ${
+      const greet = (who) => `Hello, ${who}`;
+    }$
+
+    # live values: one expression each
+    [p]runtime ${ greet("Adam") }$[end]
+    [button = onclick: runtime ${ () => alert(greet("you")) }$]Greet[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-scope"]4. One file, one scope[end:Title]
+  [Text]Live values can use anything from the file's runtime blocks. Another file's variables are not visible, not even the page's inside a component used on it:[end:Text]
+  [Code = text: '
+    # page.arcm
+    [import = Card: "./Card.arcm" !]
+    runtime ${ const theme = "dark"; }$
+    [p]runtime ${ theme }$[end]   # ✓ same file
+    [Card!]
+
+    # Card.arcm
+    [p]runtime ${ theme }$[end]   # ✗ theme belongs to page.arcm
+  ' !]
+  [Text]ArcMoon doesn't always catch this while building; in the browser it throws a [hl = text: "ReferenceError" !]. Pass values to a component as props instead.[end:Text]
+
+  [Title = size: 3, id: "rule-signals"]5. A live value only updates if it reads a signal[end:Title]
+  [Code = text: '
+    # ✗ count changes, but the page keeps showing 0
+    runtime ${ let count = 0; }$
+    [button = onclick: runtime ${ () => count++ }$]runtime ${ count }$[end]
+
+    # ✓ updates on every click
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(0);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]runtime ${ count() }$[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-events"]6. Events take a function, not a call[end:Title]
+  [Code = text: '
+    # ✗ save() runs once, when the page loads
+    [button = onclick: runtime ${ save() }$]Save[end]
+
+    # ✓ save() runs on every click
+    [button = onclick: runtime ${ () => save() }$]Save[end]
+  ' !]
+
+  [Title = size: 3, id: "rule-bundle"]7. npm packages must be listed in bundle[end:Title]
+  [Text]Local files and [hl = text: "arcmoon/reactive" !] don't need it. [hl = text: "node:" !] modules never work in the browser.[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default { bundle: ["canvas-confetti"] };
+  ' !]
+  [Code = text: '
+    runtime ${
+      import confetti from "canvas-confetti";   // ✓ listed in bundle
+      import { add } from "./add.js";          // ✓ local file
+      import fs from "node:fs";                 // ✗ not in the browser
+    }$
+  ' !]
+
+  [Title = size: 3, id: "rule-not-allowed"]8. export and ArcMoon.props() are build-time only[end:Title]
+  [Text]Read props in [hl = text: "${ }$" !] and export what runtime code needs:[end:Text]
+  [Code = text: '
+    # ✗ wrong
+    runtime ${
+      export const x = 1;
+      const { start } = ArcMoon.props();
+    }$
+
+    # ✓ right
+    ${
+      const { start = 0 } = ArcMoon.props();
+      export const initial = start;
+    }$
+    runtime ${ console.log(initial); }$
+  ' !]
+  [Text]Both stop the build at the spot:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ export is not allowed in runtime code
+    ✗ ArcMoon.props() only exists at build time; read props in ${ }$ and export what runtime code needs
+  ' !]
+
+  [Title = id: "two-kinds"]Code blocks and live values[end:Title]
+  [Text]Where you write it decides what it is:[end:Text]
+  [List]
+    [Item][strong]At the top level[end] of the file: a [strong]code block[end]. Imports, variables, functions, any statements.[end:Item]
+    [Item][strong]Inside markup or a prop[end]: a [strong]live value[end]. One expression, no [hl = text: ";" !].[end:Item]
+  [end:List]
+  [Code = text: '
+    runtime ${
+      const hello = "Hi from the browser";
+    }$
+    [p]runtime ${ hello }$[end]
+    [p]Window width: runtime ${ innerWidth }$px[end]
+  ' !]
+  [Text]All runtime code in one file shares its variables. A live value is filled in when the page loads; to make it update later, see [Link = text: "Reactivity", href: "#reactivity" !].[end:Text]
+
+  [Title = id: "events"]Events[end:Title]
+  [Text]Props starting with [hl = text: "on" !] add an event listener. They take a function, which gets the event:[end:Text]
+  [List]
+    [Item][hl = text: "onclick: runtime ${ () => save() }$" !] calls [hl = text: "save()" !] on every click.[end:Item]
+    [Item][hl = text: "onclick: runtime ${ save() }$" !] calls it once, when the page loads, and never on click.[end:Item]
+    [Item][hl = text: "oninput: runtime ${ (e) => … }$" !]: [hl = text: "e.currentTarget" !] is the element, [hl = text: "e.target.value" !] what was typed.[end:Item]
+  [end:List]
+
+  [Title = id: "refs"]Refs[end:Title]
+  [Text]To work with an element directly (focus it, measure it, give it to a library), mark it with [hl = text: "arcm-ref" !] and get it with [hl = text: "ArcMoon.ref()" !]:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    [input = arcm-ref: "box", placeholder: "Type here" !]
+    [button = arcm-ref: "go"]Focus the box[end]
+    runtime ${
+      const box = ArcMoon.ref(ArcMoon.defineRef("box"));
+      ArcMoon.ref(ArcMoon.defineRef("go")).onclick = () => box.focus();
+    }$
+  ' !]
+  [Text]For many elements, use [hl = text: "arcm-shared-ref" !] and [hl = text: "ArcMoon.refs()" !], which gives a list:[end:Text]
+  [Code = text: '
+    [li = arcm-shared-ref: "item"]Tea[end]
+    [li = arcm-shared-ref: "item"]Cake[end]
+    runtime ${
+      const items = ArcMoon.refs(ArcMoon.defineRef("item"));
+      items.forEach((li) => (li.onclick = () => li.remove()));
+    }$
+  ' !]
+  [Text]Don't invent ids: a component used twice would repeat them. Refs stay unique for every use.[end:Text]
+
+  [Title = id: "exports"]Values from build time[end:Title]
+  [Text]Runtime code can't see [hl = text: "${ }$" !] variables. To send one to the browser, [hl = text: "export" !] it:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    ${ export const tips = ["Drink water", "Take a walk", "Call a friend"]; }$
+    [button = arcm-ref: "next"]Show a tip[end]
+    [p = arcm-ref: "tip"]Click the button.[end]
+    runtime ${
+      const tip = ArcMoon.ref(ArcMoon.defineRef("tip"));
+      let n = 0;
+      ArcMoon.ref(ArcMoon.defineRef("next")).onclick = () => (tip.textContent = tips[n++ % tips.length]);
+    }$
+  ' !]
+  [List]
+    [Item]The value is copied once, at build time, and goes one way: build time → browser.[end:Item]
+    [Item]Text, numbers, booleans, arrays, plain objects, [hl = text: "Date" !], [hl = text: "Map" !] and [hl = text: "Set" !] can be exported. Functions can't.[end:Item]
+    [Item]If a value never changes, skip runtime code: [hl = text: "${ value }$" !] writes it into the HTML with no script.[end:Item]
+  [end:List]
+
+  [Title = id: "packages"]npm packages[end:Title]
+  [Text]List the browser packages you import in [hl = text: "bundle" !]. Local files don't need it:[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default {
+      bundle: ["canvas-confetti"]
+    };
+  ' !]
+  [Code = title: "index.arcm", text: '
+    runtime ${ import confetti from "canvas-confetti"; }$
+    [button = onclick: runtime ${ () => confetti() }$]Party[end]
+  ' !]
+
+  [Title = id: "reactivity"]Reactivity (optional)[end:Title]
+  [Text]
+    Everything above works without importing it. When a value on the page should update by itself, use
+    [hl = text: "arcmoon/reactive" !]: a small signals library built on alien-signals. Click the button:
+  [end:Text]
+  [Playground = title: "index.arcm", text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(0);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]
+      Clicked runtime ${ count() }$ times
+    [end]
+  ' !]
+  [List]
+    [Item][hl = text: "signal(0)" !] holds a value. [hl = text: "count()" !] reads it; [hl = text: "count(5)" !] sets it.[end:Item]
+    [Item]A live value that reads a signal updates whenever the signal changes: text, attributes, and [hl = text: "css." !] / [hl = text: "--" !] style props.[end:Item]
+  [end:List]
+  [Text][hl = text: "computed" !] makes a value from other signals, and [hl = text: "effect" !] runs code each time the signals it reads change. Type a name:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    runtime ${
+      import { signal, computed, effect } from "arcmoon/reactive";
+      const name = signal("");
+      const long = computed(() => name().length > 5);
+      effect(() => (document.title = name() || "Hello"));
+    }$
+    [input = placeholder: "Your name", oninput: runtime ${ (e) => name(e.target.value) }$ !]
+    [p = css.color: runtime ${ long() ? "crimson" : "inherit" }$]
+      Hello, runtime ${ name() || "stranger" }$!
+    [end]
+  ' !]
+  [Text]A plain variable doesn't update the page. The code changes it, but the page keeps showing the first value:[end:Text]
+  [Code = text: '
+    # ✗ the number on the page never changes
+    runtime ${ let count = 0; }$
+    [button = onclick: runtime ${ () => count++ }$]runtime ${ count }$[end]
+
+    # ✓ updates on every click
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(0);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]runtime ${ count() }$[end]
+  ' !]
+
+  [Text]More in [Link = text: "Reactivity", href: "reactivity.html" !]: [hl = text: "computed" !], [hl = text: "effect" !], lists that change, and sharing signals between components.[end:Text]
+
+  [Title = id: "tips"]Tips[end:Title]
+  [Text]Your code works either way, but these make it better.[end:Text]
+
+  [Title = size: 3, id: "tip-refs"]Reach elements with refs, not ids you invent[end:Title]
+  [Text]An id repeats when a component is used twice. Refs stay unique for every use:[end:Text]
+  [Code = text: '
+    # ✗ breaks when this is used twice
+    [input = id: "search" !]
+    runtime ${ document.getElementById("search").focus(); }$
+
+    # ✓ right
+    [input = arcm-ref: "search" !]
+    runtime ${ ArcMoon.ref(ArcMoon.defineRef("search")).focus(); }$
+  ' !]
+
+  [Title = size: 3, id: "tip-static"]Values that never change don't need runtime code[end:Title]
+  [Code = text: '
+    # ✗ ships a script just to show a fixed value
+    ${ export const version = "1.0.0"; }$
+    [p]runtime ${ version }$[end]
+
+    # ✓ written into the HTML, no script
+    ${ const version = "1.0.0"; }$
+    [p]${ version }$[end]
+  ' !]
+
+  [Title = id: "mistakes"]Mistakes[end:Title]
+  [Text]Each message below stops the build (✗) or warns (⚠). Here is what causes it and how to fix it.[end:Text]
+
+  [Title = size: 3, id: "not-exported"]A build-time value that isn't exported[end:Title]
+  [Code = lang: "log", text: '
+    ✗ runtime code uses "siteName", which is not exported from ${ }$. Add "export" to its declaration, or write export { siteName }, to send it to visitors\' browsers.
+  ' !]
+  [Text][hl = text: "${ }$" !] runs while building and [hl = text: "runtime ${ }$" !] runs in the browser, so they can't see each other's variables. Only exported values are copied into the page:[end:Text]
+  [Code = text: '
+    # ✗ wrong
+    ${ const siteName = "My site"; }$
+    runtime ${ console.log(siteName); }$
+
+    # ✓ right
+    ${ export const siteName = "My site"; }$
+    runtime ${ console.log(siteName); }$
+  ' !]
+  [Text]Exported values are visible to every visitor. Never export secrets like API keys.[end:Text]
+
+  [Title = size: 3, id: "loop-name"]A [hl = text: "[for-each]" !] name in runtime code[end:Title]
+  [Code = lang: "log", text: '
+    ✗ runtime code uses "item", a [for-each] name that only exists at build time. To use it in the browser, write it into the markup (for example data-item: ${ item }$) and read it there.
+  ' !]
+  [Text]The loop runs while building, so [hl = text: "item" !] is gone by the time the page is in the browser. Write the value into the element, then read it from the event:[end:Text]
+  [Code = text: '
+    # ✗ wrong
+    [for-each = ${ ["Tea", "Cake"] }$, as: "item"]
+      [button = onclick: runtime ${ () => alert(item) }$]${ item }$[end]
+    [end]
+
+    # ✓ right
+    [for-each = ${ ["Tea", "Cake"] }$, as: "item"]
+      [button = data-item: ${ item }$, onclick: runtime ${ (e) => alert(e.currentTarget.dataset.item) }$]${ item }$[end]
+    [end]
+  ' !]
+
+  [Title = size: 3, id: "ref-name"]A ref name that doesn't match[end:Title]
+  [Code = lang: "log", text: '
+    ✗ defineRef("my-bnt") matches no arcm-ref in page.arcm (did you mean "my-btn"?)
+  ' !]
+  [Text][hl = text: "defineRef()" !] takes the name of an [hl = text: "arcm-ref" !] or [hl = text: "arcm-shared-ref" !] in the same file (or in a component used in it). ArcMoon checks the name while building, so a typo never reaches the browser. Fix the spelling.[end:Text]
+
+  [Title = size: 3, id: "not-in-bundle"]An npm package not listed in bundle[end:Title]
+  [Code = lang: "log", text: '
+    ✗ runtime import "canvas-confetti" is not listed in bundle (arcmoon.config.js)
+  ' !]
+  [Text]Packages in runtime code are sent to every visitor, so ArcMoon only bundles the ones you list. Install the package, then add it to [hl = text: "bundle" !]:[end:Text]
+  [Code = lang: "bash", text: "npm install canvas-confetti" !]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default {
+      bundle: ["canvas-confetti"]
+    };
+  ' !]
+
+  [Title = size: 3, id: "node-module"]A Node.js module in the browser[end:Title]
+  [Code = lang: "log", text: '
+    ✗ runtime import "node:fs" is a Node.js module, which doesn\'t exist in the browser
+  ' !]
+  [Text]Browsers have no [hl = text: "node:fs" !], [hl = text: "node:path" !] and so on. Do that work in [hl = text: "${ }$" !] while building, and export the result:[end:Text]
+  [Code = text: '
+    # ✗ wrong
+    runtime ${
+      import { readFileSync } from "node:fs";
+      const notes = readFileSync("notes.txt", "utf8");
+    }$
+
+    # ✓ right
+    ${
+      import { readFileSync } from "node:fs";
+      export const notes = readFileSync("notes.txt", "utf8");
+    }$
+    runtime ${ console.log(notes); }$
+  ' !]
+
+  [Title = size: 3, id: "unknown-name"]A name runtime code doesn't have[end:Title]
+  [Code = lang: "log", text: '
+    ⚠ page.arcm:2:4  "cout" is not defined in this file\'s runtime code (did you mean "count"?)
+  ' !]
+  [Text]A warning: the build goes on, but in the browser [hl = text: "cout()" !] throws a [hl = text: "ReferenceError" !] and that code stops. Usually a typo, so fix the name. Browser globals like [hl = text: "window" !] or [hl = text: "document" !] never warn.[end:Text]
+
+  [Title = size: 3, id: "statements"]Statements inside markup[end:Title]
+  [Code = lang: "log", text: '
+    ✗ runtime ${ }$ inside [div] must be one expression (a live value).
+      To run statements, move this runtime ${ }$ to the top level of the file.
+  ' !]
+  [Text]Inside markup, [hl = text: "runtime ${ }$" !] is a live value: one expression. Move statements to a block at the top level:[end:Text]
+  [Code = text: '
+    # ✗ wrong
+    [div]runtime ${ const total = 2 + 3; total }$[end]
+
+    # ✓ right
+    runtime ${ const total = 2 + 3; }$
+    [div]runtime ${ total }$[end]
+  ' !]
+[end:Docs]

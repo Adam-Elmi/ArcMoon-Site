@@ -1,0 +1,4 @@
+[import = Box: "./Box.arcm" !]
+[Box]
+  [p]Hello from the page.[end]
+[end:Box]

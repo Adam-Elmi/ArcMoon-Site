@@ -1,0 +1,9 @@
+${ import theme from "./theme.json"; }$
+[h1]Welcome[end]
+[input = type: "text", placeholder: "Name" !]
+[style]
+  :root { --brand: ${ theme.brand }$; }
+  h1 { color: var(--brand); }
+  #main, input[type="text"] { border: 1px solid #ccc; }
+  h1::after { content: "\2014"; }
+[end]

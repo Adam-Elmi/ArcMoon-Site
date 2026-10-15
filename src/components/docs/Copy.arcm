@@ -1,0 +1,114 @@
+# ###################
+# A copy button over its body: [Copy][pre]…[end][end:Copy] copies the text inside;
+# [Copy = text: "…" !] copies that text instead. label: the button's name (default "Copy").
+# show: "hover" (default, the button shows on hover / focus) or "always"
+# ###################
+${
+  const { text = null, label = "Copy", show = "hover" } = ArcMoon.props();
+  export const fixed = text;
+  export const quiet = "";
+}$
+
+runtime ${
+  import { signal } from "arcmoon/reactive";
+
+  // ###################
+  // This use's own wrapper (every use of Copy has its own ref)
+  // ###################
+  const content = ArcMoon.ref(ArcMoon.defineRef("content"));
+  const copied = signal(false);
+  const said = signal(quiet);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(fixed ?? content.innerText.trim());
+      copied(true);
+      said("Copied");
+      setTimeout(() => {
+        copied(false);
+        said(quiet);
+      }, 1500);
+    } catch {
+      said("Couldn't copy");
+    }
+  };
+}$
+
+[div = class: "copy", data-show: ${ show }$]
+  [div = class: "content", arcm-ref: "content"][slot!][end]
+  [button = class: "copy-button", type: "button", title: ${ label }$, aria-label: ${ label }$, data-copied: runtime ${ copied() }$, onclick: runtime ${ copy }$]
+    [svg = class: "icon-copy", viewBox: "0 0 24 24", aria-hidden: "true"][rect = x: "9", y: "9", width: "13", height: "13", rx: "2" !][path = d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" !][end]
+    [svg = class: "icon-done", viewBox: "0 0 24 24", aria-hidden: "true"][path = d: "M20 6 9 17l-5-5" !][end]
+  [end]
+  [span = class: "said", aria-live: "polite"]runtime ${ said() }$[end]
+[end]
+
+[style]
+  .copy {
+    position: relative;
+  }
+  .content > :global(pre) {
+    padding-right: 52px;
+  }
+  .copy-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+  }
+  .copy:hover .copy-button,
+  .copy[data-show="always"] .copy-button,
+  .copy-button:focus-visible,
+  .copy-button[data-copied] {
+    opacity: 1;
+  }
+  .copy-button:hover {
+    color: var(--ink);
+  }
+  /* ###################
+     Touch screens show the button all the time: the code starts below it
+     ################### */
+  @media (hover: none) {
+    .copy-button {
+      opacity: 1;
+    }
+    .content > :global(pre) {
+      padding-top: 44px;
+    }
+  }
+  svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .icon-done,
+  [data-copied] .icon-copy {
+    display: none;
+  }
+  [data-copied] .icon-done {
+    display: block;
+    color: var(--pick-3);
+  }
+  .said {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+[end]

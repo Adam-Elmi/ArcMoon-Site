@@ -1,0 +1,6 @@
+$ arcm build pages
+
+dist/
+  index.html     the page, with its CSS and JS inside
+  menu.html      a page with no runtime code
+  assets/        images and fonts your CSS uses

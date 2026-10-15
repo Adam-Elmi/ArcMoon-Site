@@ -1,0 +1,78 @@
+# ###################
+# Docs: Blocks
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+[import = Note: "@/components/docs/Note.arcm" !]
+
+[Docs = slug: "blocks"]
+  [Title = id: "what"]What a block becomes[end:Title]
+  [Text]The name decides it:[end:Text]
+  [List]
+    [Item]An HTML, SVG or MathML name ([hl = text: "[section]" !], [hl = text: "[svg]" !]): that element.[end:Item]
+    [Item]A name with a dash ([hl = text: "[my-widget]" !]): a custom element.[end:Item]
+    [Item]An imported name ([hl = text: "[Card]" !]): the component's output. See [Link = text: "Components", href: "components.html" !].[end:Item]
+    [Item]A built-in name ([hl = text: "[for-each]" !], [hl = text: "[doctype!]" !]…): its job. See [Link = text: "Built-in blocks", href: "built-in.html" !].[end:Item]
+  [end:List]
+  [Code = output: true, text: '
+    [my-widget = size: "2"]Custom[end]
+    [svg = viewBox: "0 0 10 10"]
+      [circle = cx: 5, cy: 5, r: 4 !]
+    [end]
+  ' !]
+
+  [Title = id: "closing"]Closing[end:Title]
+  [Text][hl = text: "[end]" !] closes the last open block. [hl = text: "[end:name]" !] does the same, and checks the name:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    [p]
+      A [b]bold[end:b] word.
+    [end:p]
+  ' !]
+  [Text]Try it: change [hl = text: "[end:b]" !] to [hl = text: "[end:p]" !], or delete the last line, and press Run.[end:Text]
+
+  [Title = id: "inline"]On one line or many[end:Title]
+  [Text]Blocks sit inside text, or across lines. Both give the same elements:[end:Text]
+  [Code = output: true, text: '
+    [p]Read the [a = href: "/docs"]docs[end] first.[end]
+    [ul]
+      [li]One[end]
+      [li]Two[end]
+    [end]
+  ' !]
+
+  [Title = id: "names"]Names[end:Title]
+  [List]
+    [Item]Write HTML tags in lowercase: [hl = text: "[div]" !], not [hl = text: "[DIV]" !].[end:Item]
+    [Item]A capital first letter means a component. If it isn't imported, you get a warning.[end:Item]
+    [Item]A name ArcMoon doesn't know still becomes a tag, with a warning.[end:Item]
+  [end:List]
+  [Code = lang: "log", text: '
+    ⚠ page.arcm:1:1  [dvi] is not an HTML element or an imported component (did you mean [div]?)
+    ⚠ page.arcm:2:1  [A] is not imported; it is written as <a>. Did you forget [import = A: "./A.arcm" !]?
+  ' !]
+
+  [Title = id: "plain-brackets"]Brackets as text[end:Title]
+  [Text][hl = text: "[" !] starts a block only when a name comes right after it. Otherwise it is text:[end:Text]
+  [Code = output: true, text: '
+    [p][ 1, 2, 3 ] and ["key"] stay text[end]
+    [p]\[p] needs a backslash[end]
+  ' !]
+
+  [Title = id: "directives"]arcm- props[end:Title]
+  [Text]Props starting with [hl = text: "arcm-" !] tell ArcMoon something. They are not written as attributes:[end:Text]
+  [List]
+    [Item][hl = text: "arcm-raw: true" !]: the body is written as it is, without reading blocks or comments.[end:Item]
+    [Item][hl = text: "arcm-ref: \"name\"" !] and [hl = text: "arcm-shared-ref: \"name\"" !]: find the element from runtime code. See [Link = text: "Runtime code", href: "runtime.html" !].[end:Item]
+    [Item][hl = text: "arcm-syntax: \"css\"" !] [strong](experimental)[end]: a hint for editors. No editor uses it yet, and nothing changes in the output.[end:Item]
+  [end:List]
+  [Code = output: true, text: '
+    [pre = arcm-raw: true][b] # stays as written[end]
+  ' !]
+[end:Docs]

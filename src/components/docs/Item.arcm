@@ -1,0 +1,15 @@
+# ###################
+# An item of a [List]: [Item]…[end:Item]. Optional: any [li] or other tag works too
+# ###################
+[li = class: "item"][slot!][end]
+
+[style]
+  .item {
+    margin: 6px 0;
+    padding-left: 4px;
+  }
+  .item::marker {
+    color: var(--accent);
+    font-weight: 600;
+  }
+[end]

@@ -1,0 +1,87 @@
+# ###################
+# Tabs: [Tabs = labels: ${ ["npm", "pnpm"] }$] one panel per label, in order [end:Tabs]
+# A panel is any tag, a [Code], or [Tab]…[end:Tab]. start: the tab shown first (from 0)
+# ###################
+${
+  const { labels = [], start = 0 } = ArcMoon.props();
+  export const first = start;
+  const buttons = labels.map((label, index) => ({ label, index }));
+
+  // ###################
+  // CSS that shows the active panel and button, for up to 10 tabs
+  // ###################
+  const rules = Array.from({ length: 10 }, (_, i) =>
+    `.tabs[data-active="${i}"] .tab[data-index="${i}"] { color: var(--accent-ink); border-bottom-color: var(--accent); }
+     .tabs[data-active="${i}"] .panels > :global(:nth-child(${i + 1})) { display: block; }`
+  ).join("\n");
+}$
+
+runtime ${
+  import { signal, effect } from "arcmoon/reactive";
+  const active = signal(first);
+  const tabs = ArcMoon.refs(ArcMoon.defineRef("tab"));
+
+  // ###################
+  // For screen readers and the keyboard: the chosen tab is selected and focusable
+  // ###################
+  effect(() => {
+    const now = active();
+    tabs.forEach((tab, i) => {
+      tab.setAttribute("aria-selected", String(i === now));
+      tab.tabIndex = i === now ? 0 : -1;
+    });
+  });
+
+  // ###################
+  // One listener on the tab list: the clicked tab says which one it is (data-index)
+  // ###################
+  const choose = (e) => {
+    const tab = e.target.closest("[data-index]");
+    if (tab) active(Number(tab.dataset.index));
+  };
+  const move = (e) => {
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    const next = (active() + step + tabs.length) % tabs.length;
+    active(next);
+    tabs[next].focus();
+  };
+}$
+
+[div = class: "tabs", data-active: runtime ${ active() }$]
+  [div = class: "tablist", role: "tablist", onclick: runtime ${ choose }$, onkeydown: runtime ${ move }$]
+    [for-each = ${ buttons }$, as: "b"]
+      [button = type: "button", role: "tab", class: "tab", data-index: ${ b.index }$, aria-selected: ${ String(b.index === start) }$, tabindex: ${ b.index === start ? 0 : -1 }$, arcm-shared-ref: "tab"]${ b.label }$[end]
+    [end]
+  [end]
+  [div = class: "panels"][slot!][end]
+[end]
+
+[style]
+  .tabs {
+    margin: 20px 0;
+  }
+  .tablist {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    margin-bottom: -1px;
+    padding: 8px 14px;
+    font: 500 13px/1 var(--mono);
+    color: var(--muted);
+    background: none;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .tab:hover {
+    color: var(--ink);
+  }
+  .panels > :global(*) {
+    display: none;
+    margin-top: 12px;
+  }
+  ${ rules }$
+[end]

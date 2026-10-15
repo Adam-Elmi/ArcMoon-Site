@@ -1,0 +1,8 @@
+${ const { name, role = "member" } = ArcMoon.props(); }$
+[article = class: "user"]
+  [h3]${ name }$ [small]${ role }$[end][end]
+  [slot!]
+[end]
+[style]
+  .user { padding: 8px 12px; border: 1px solid #ddd; }
+[end]

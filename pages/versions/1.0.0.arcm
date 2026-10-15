@@ -1,0 +1,26 @@
+# ###################
+# Release 1.0.0: the first stable release
+# ###################
+[import = Release: "@/layouts/Release.arcm" !]
+[import = Change: "@/components/release/Change.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+
+[Release = version: "1.0.0", date: "2026-10-15", summary: "The first stable release of ArcMoon. From 1.0, what works keeps working in every 1.x."]
+  [Change = kind: "feature", title: "Blocks and props", text: "HTML written as `[name = props]…[end]`, self-closing `[name!]`, comments, escapes and `arcm-raw`."]
+    [Code = text: '
+      [a = href: "/users", class: "link"]All users[end]
+    ' !]
+  [end:Change]
+  [Change = kind: "feature", title: "Build-time code", text: "`${ }$` runs Node.js while the page is built: files, databases, npm packages and `fetch`. Only its result reaches the page."]
+  [end:Change]
+  [Change = kind: "feature", title: "Runtime code and signals", text: "`runtime ${ }$` runs in the browser, with refs, events, live values and `arcmoon/reactive` (`signal`, `computed`, `effect`)."]
+  [end:Change]
+  [Change = kind: "feature", title: "Components and slots", text: "`.arcm` files imported with `[import]`, with props, slots and props that pass through to the outer element."]
+  [end:Change]
+  [Change = kind: "feature", title: "Styles", text: "Scoped component styles, `css.` and `--` props, and CSS bundled per page."]
+  [end:Change]
+  [Change = kind: "feature", title: "CLI, JavaScript API and browser build", text: "`arcm build`, `compile()` / `build()` / `buildPages()` in Node.js, and `render()` / `compile()` in the browser."]
+  [end:Change]
+  [Change = kind: "feature", title: "The protector", text: "Templates you didn't write never run until you have seen what they do and trusted them."]
+  [end:Change]
+[end:Release]

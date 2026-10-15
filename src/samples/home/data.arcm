@@ -1,0 +1,7 @@
+${
+  import site from "./site.json";
+  const year = new Date().getFullYear();
+}$
+[footer]
+  © ${ year }$ ${ site.name }$ · ${ site.email }$
+[end]

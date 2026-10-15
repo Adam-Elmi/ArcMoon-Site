@@ -1,0 +1,6 @@
+${ const { title, count = 0, big = false } = ArcMoon.props(); }$
+
+[div = class: "card"]
+  [h2]${ title }$[end]
+  [p]${ count }$ items[end]
+[end:div]

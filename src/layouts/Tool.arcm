@@ -1,0 +1,100 @@
+# ###################
+# A tool's page: its name, latest version, links and install commands, then the page's own text
+# Props: slug (its entry in src/data/tools.json)
+# ###################
+[import = Site: "./Site.arcm" !]
+[import = Code: "../components/Code.arcm" !]
+[import = Tabs: "../components/docs/Tabs.arcm" !]
+
+${
+  import tools from "../data/tools.json";
+  import { latest } from "../lib/npm.js";
+
+  const { slug } = ArcMoon.props();
+  const tool = tools.find((t) => t.slug === slug);
+  if (!tool) throw new Error(`"${slug}" is not in src/data/tools.json`);
+  const version = await latest(tool.name);
+  const versions = version ? [version] : [];
+}$
+
+[Site = title: ${ tool.name }$, description: ${ tool.summary }$, root: "../", section: "tools"]
+  [div = class: "wrap tool"]
+    [a = class: "back", href: "../tools.html"]← All tools[end]
+    [header = class: "top"]
+      [h1]${ tool.name }$[end]
+      [for-each = ${ versions }$, as: "v"][span = class: "version", title: "Latest version on npm"]v${ v }$[end][end]
+      [span = class: "links"]
+        [a = href: ${ tool.npm }$]npm[end]
+        [a = href: ${ tool.repo }$]GitHub[end]
+      [end]
+    [end]
+    [p = class: "summary"]${ tool.summary }$[end]
+
+    [h2 = class: "install-title"]Install[end]
+    [Tabs = labels: ${ Object.keys(tool.install) }$]
+      [for-each = ${ Object.values(tool.install) }$, as: "command"]
+        [Code = lang: "bash", copy: "always", text: ${ command }$ !]
+      [end]
+    [end:Tabs]
+
+    [article = class: "prose"][slot!][end]
+  [end]
+[end:Site]
+
+[style]
+  .tool {
+    max-width: 820px;
+    padding-top: clamp(28px, 5vw, 48px);
+    padding-bottom: 96px;
+  }
+  .back {
+    font-size: 14px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .back:hover {
+    color: var(--accent-ink);
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin-top: 20px;
+  }
+  h1 {
+    margin: 0;
+    font: 600 clamp(28px, 5vw, 38px)/1.15 var(--mono);
+    letter-spacing: -0.02em;
+  }
+  .version {
+    padding: 2px 9px;
+    font: 500 12px/1.5 var(--mono);
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-radius: 999px;
+  }
+  .links {
+    display: flex;
+    gap: 14px;
+    margin-left: auto;
+    font-size: 14px;
+  }
+  .links a {
+    color: var(--muted);
+    text-decoration: none;
+  }
+  .links a:hover {
+    color: var(--accent-ink);
+  }
+  .summary {
+    margin: 14px 0 0;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .install-title {
+    margin: 40px 0 0;
+    font: 600 22px/1.3 var(--sans);
+    letter-spacing: -0.01em;
+  }
+[end]

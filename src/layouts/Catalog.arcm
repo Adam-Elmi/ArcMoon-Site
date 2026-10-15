@@ -1,0 +1,119 @@
+# ###################
+# A catalog page (Tools, Packages): a heading, a search, then the page's cards.
+# Search hides every element with data-find that doesn't hold all the typed words,
+# and a [data-group] whose items are all hidden
+# Props: title, description, section, kicker, heading, intro, placeholder, empty (the text before “…”)
+# ###################
+[import = Site: "./Site.arcm" !]
+
+${
+  const { title, description, section, kicker, heading, intro, placeholder = "Search", empty = "Nothing matches" } = ArcMoon.props();
+}$
+
+runtime ${
+  const box = ArcMoon.ref(ArcMoon.defineRef("catalog"));
+  const none = ArcMoon.ref(ArcMoon.defineRef("catalog-empty"));
+  const search = (e) => {
+    const words = e.target.value.toLowerCase().split(/\s+/).filter(Boolean);
+    let shown = 0;
+    for (const item of box.querySelectorAll("[data-find]")) {
+      const hit = words.every((w) => item.dataset.find.includes(w));
+      item.dataset.hide = String(!hit);
+      if (hit) shown++;
+    }
+    for (const group of box.querySelectorAll("[data-group]")) {
+      group.dataset.hide = String(!group.querySelector('[data-find]:not([data-hide="true"])'));
+    }
+    none.dataset.hide = String(shown > 0);
+    none.querySelector("span").textContent = e.target.value.trim();
+  };
+}$
+
+[Site = title: ${ title }$, description: ${ description }$, section: ${ section }$]
+  [div = class: "wrap catalog", arcm-ref: "catalog"]
+    [header = class: "head"]
+      [p = class: "kicker"]${ kicker }$[end]
+      [h1]${ heading }$[end]
+      [p = class: "intro"]${ intro }$[end]
+      [label = class: "search"]
+        [svg = viewBox: "0 0 16 16", aria-hidden: "true"][circle = cx: "7", cy: "7", r: "4.5", fill: "none", stroke: "currentColor", stroke-width: "1.5" !][path = d: "M10.5 10.5 14 14", stroke: "currentColor", stroke-width: "1.5", stroke-linecap: "round" !][end]
+        [input = type: "search", placeholder: ${ placeholder }$, aria-label: ${ placeholder }$, autocomplete: "off", oninput: runtime ${ search }$ !]
+      [end]
+    [end]
+    [slot!]
+    [p = class: "empty", arcm-ref: "catalog-empty", data-hide: "true"]${ empty }$ “[span][end]”.[end]
+  [end]
+[end:Site]
+
+[style]
+  .catalog {
+    padding-top: clamp(40px, 6vw, 72px);
+    padding-bottom: 96px;
+  }
+  .head {
+    max-width: 640px;
+  }
+  .kicker {
+    margin: 0;
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    margin: 12px 0 10px;
+    font: 400 clamp(34px, 5vw, 46px)/1.1 var(--serif);
+    letter-spacing: -0.02em;
+  }
+  .intro {
+    margin: 0 0 28px;
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .search:focus-within {
+    border-color: var(--accent);
+  }
+  .search svg {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    color: var(--faint);
+  }
+  .search input {
+    flex: 1;
+    min-width: 0;
+    font: 16px/1.4 var(--sans);
+    color: var(--ink);
+    background: none;
+    border: 0;
+    outline: none;
+  }
+  .empty {
+    margin: 48px 0;
+    text-align: center;
+    color: var(--muted);
+  }
+  .catalog :global([data-hide="true"]) {
+    display: none;
+  }
+  /* ###################
+     The pages' grids of cards
+     ################### */
+  .catalog :global(.cards) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 16px;
+    margin: 40px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+[end]

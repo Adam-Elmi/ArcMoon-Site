@@ -1,0 +1,33 @@
+[
+	{ "group": "Start", "pages": [{ "slug": "index", "title": "Getting started", "summary": "Install ArcMoon, write a page and build it." },
+		{ "slug": "installation", "title": "Installation", "summary": "Requirements, installing the arcm command and checking that it works." }
+	] },
+	{
+		"group": "Language",
+		"pages": [
+			{ "slug": "syntax", "title": "Syntax", "summary": "The whole language on one page: blocks, props, code, loops, components and styles." },
+			{ "slug": "blocks", "title": "Blocks", "summary": "What a block becomes, closing, names, brackets as text and arcm- props." },
+			{ "slug": "self-closing", "title": "Self-closing blocks", "summary": "Blocks with no body: [name!], elements with no content, components." },
+			{ "slug": "built-in", "title": "Built-in blocks", "summary": "[doctype!], [for-each], [import] and [slot]: what each does, its rules and its errors." },
+			{ "slug": "props", "title": "Props", "summary": "name: value, value types, quotes, names and style props." },
+			{ "slug": "comments", "title": "Comments", "summary": "# and ### comments, where # is not a comment, and writing # in text." },
+			{ "slug": "escaping", "title": "Escaping", "summary": "Writing [, #, ${ and \\ as plain text, quoted values, and arcm-raw." },
+			{ "slug": "raw", "title": "Raw text", "summary": "arcm-raw: true writes a body exactly as it is: code samples, inline scripts, JSON." },
+			{ "slug": "loops", "title": "Loops", "summary": "[for-each]: lists, the index i, objects, data from files and nested loops." },
+			{ "slug": "build-time", "title": "Build-time code", "summary": "${ }$: Node.js that runs while the page is built." },
+			{ "slug": "runtime", "title": "Runtime code", "summary": "runtime ${ }$: JavaScript in the browser, events, refs, and optional reactivity." },
+			{ "slug": "reactivity", "title": "Reactivity", "summary": "arcmoon/reactive: signal, computed and effect, lists that change, and sharing state." },
+			{ "slug": "components", "title": "Components", "summary": "[import], props, slots and props that fall through." },
+			{ "slug": "styles", "title": "Styles", "summary": "[style], scoped component styles, --name and css. props." }
+		]
+	},
+	{
+		"group": "Reference",
+		"pages": [
+			{ "slug": "cli", "title": "CLI and config", "summary": "arcm commands, build flags and arcmoon.config.js." },
+			{ "slug": "api", "title": "JavaScript API", "summary": "compile(), build(), buildPages() and loadGraph(): ArcMoon from your own code." },
+			{ "slug": "browser", "title": "Browser build", "summary": "Compile ArcMoon in the browser: render(), compile(), files, baseUrl and packages." },
+			{ "slug": "protector", "title": "Protector", "summary": "Templates you didn't write never run until you trust them: the report, trust, and changes." }
+		]
+	}
+]

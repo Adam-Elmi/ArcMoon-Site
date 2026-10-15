@@ -1,0 +1,3 @@
+[import = Progress: "./Progress.arcm" !]
+[Progress = value: 30 !]
+[Progress = value: 80 !]

@@ -1,0 +1,11 @@
+# Edit this page: the result on the right follows. Custom comes from custom.arcm
+[import = Custom: "@/custom.arcm" !]
+${ const steps = ["Write .arcm", "Run it", "Get HTML"]; }$
+
+[h1]Hello, ArcMoon[end:h1]
+[Custom = title: "A component"]It lives in custom.arcm.[end:Custom]
+[ol]
+  [for-each = ${ steps }$, as: "step"]
+    [li]${ step }$[end:li]
+  [end:for-each]
+[end:ol]

@@ -1,0 +1,17 @@
+# A signal says which tab is open; a live data- attribute and one CSS rule show it
+runtime ${
+  import { signal } from "arcmoon/reactive";
+  const tab = signal("one");
+}$
+
+[button = onclick: runtime ${ () => tab("one") }$]One[end:button]
+[button = onclick: runtime ${ () => tab("two") }$]Two[end:button]
+
+[div = class: "tabs", data-open: runtime ${ tab() }$]
+  [p = class: "one"]The first tab.[end:p]
+  [p = class: "two"]The second tab.[end:p]
+[end:div]
+
+[style]
+  [data-open="one"] .two, [data-open="two"] .one { display: none; }
+[end:style]

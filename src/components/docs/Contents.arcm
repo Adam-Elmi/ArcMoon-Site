@@ -1,0 +1,367 @@
+# ###################
+# Contents: a button that opens a full-screen table of contents with a search
+# Props:
+#   groups: [{ label, items: [{ title, href, text, current, sections: [{ title, href }] }] }]
+#           (text: a short line under the title; sections: the page's headings)
+#   label: the button text (default "Contents")
+#   hotkey: open with Ctrl/⌘ K and "/" (default true)
+# ###################
+${
+  const { groups = [], label = "Contents", hotkey = true } = ArcMoon.props();
+  export const useHotkey = hotkey;
+  const lists = groups.map((g) => ({
+    label: g.label,
+    items: g.items.map((item) => ({
+      ...item,
+      text: item.text ?? "",
+      sections: item.sections ?? [],
+      find: `${item.title} ${item.text ?? ""} ${g.label}`.toLowerCase()
+    }))
+  }));
+}$
+
+runtime ${
+  const dialog = ArcMoon.ref(ArcMoon.defineRef("contents-dialog"));
+  const input = ArcMoon.ref(ArcMoon.defineRef("contents-search"));
+  const empty = ArcMoon.ref(ArcMoon.defineRef("contents-empty"));
+  const pages = [...dialog.querySelectorAll(".contents-page")];
+  const groups = [...dialog.querySelectorAll(".contents-group")];
+
+  // ###################
+  // Search: every word must match. A page shows when it or one of its sections matches;
+  // a matching page shows all its sections
+  // ###################
+  const shown = () => [...dialog.querySelectorAll(".contents-item")].filter((a) => !a.closest('[data-hide="true"]'));
+  let active = -1;
+  const mark = (index) => {
+    const list = shown();
+    for (const a of dialog.querySelectorAll(".contents-item")) a.dataset.active = "false";
+    if (list[index]) list[index].dataset.active = "true";
+    active = index;
+    if (list[index]) list[index].scrollIntoView({ block: "nearest" });
+  };
+  const filter = () => {
+    const words = input.value.toLowerCase().split(/\s+/).filter(Boolean);
+    const fits = (a) => words.every((w) => a.dataset.find.includes(w));
+    for (const page of pages) {
+      const link = page.querySelector(".contents-item");
+      const own = fits(link);
+      link.dataset.hit = String(own);
+      let any = false;
+      for (const sub of page.querySelectorAll(".contents-sub li")) {
+        const subLink = sub.querySelector(".contents-item");
+        subLink.dataset.hit = String(fits(subLink));
+        const hit = own || subLink.dataset.hit === "true";
+        sub.dataset.hide = String(!hit);
+        any ||= hit;
+      }
+      page.dataset.hide = String(!own && !any);
+    }
+    for (const group of groups) group.dataset.hide = String(!group.querySelector('.contents-page[data-hide="false"]'));
+    const none = shown().length === 0;
+    empty.dataset.hide = String(!none);
+    empty.querySelector("span").textContent = input.value.trim();
+    // the first real match is selected, not a page shown only for its sections
+    mark(words.length ? shown().findIndex((a) => a.dataset.hit === "true") : -1);
+  };
+
+  // ###################
+  // Open, close, and the keyboard
+  // ###################
+  const open = () => {
+    if (dialog.open) return;
+    input.value = "";
+    filter();
+    dialog.showModal();
+    input.focus();
+  };
+  const close = () => dialog.close();
+  const keys = (e) => {
+    const list = shown();
+    if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!list.length) return;
+      const step = e.key === "ArrowDown" ? 1 : -1;
+      mark(active === -1 ? (step === 1 ? 0 : list.length - 1) : (active + step + list.length) % list.length);
+    } else if (e.key === "Enter" && list[active]) {
+      e.preventDefault();
+      list[active].click();
+    }
+  };
+  const pick = (e) => {
+    if (e.target.closest(".contents-item")) close();
+    else if (e.target === dialog) close();
+  };
+  if (useHotkey) {
+    document.addEventListener("keydown", (e) => {
+      const typing = e.target.closest("input, textarea, select, [contenteditable], .cm-editor");
+      if ((e.key === "k" && (e.ctrlKey || e.metaKey)) || (e.key === "/" && !typing)) {
+        e.preventDefault();
+        open();
+      }
+    });
+  }
+}$
+
+[div = class: "contents"]
+  [button = class: "contents-open", type: "button", onclick: runtime ${ open }$, aria-haspopup: "dialog"]
+    [svg = viewBox: "0 0 16 16", aria-hidden: "true"][circle = cx: "7", cy: "7", r: "4.5", fill: "none", stroke: "currentColor", stroke-width: "1.5" !][path = d: "M10.5 10.5 14 14", stroke: "currentColor", stroke-width: "1.5", stroke-linecap: "round" !][end]
+    [span = class: "contents-label"]${ label }$[end]
+    [for-each = ${ hotkey ? [1] : [] }$][kbd = class: "contents-key"]/[end][end]
+  [end]
+
+  [dialog = class: "contents-dialog", arcm-ref: "contents-dialog", aria-label: ${ label }$, onclick: runtime ${ pick }$]
+    [div = class: "contents-frame"]
+      [div = class: "contents-head"]
+        [svg = class: "contents-glass", viewBox: "0 0 16 16", aria-hidden: "true"][circle = cx: "7", cy: "7", r: "4.5", fill: "none", stroke: "currentColor", stroke-width: "1.5" !][path = d: "M10.5 10.5 14 14", stroke: "currentColor", stroke-width: "1.5", stroke-linecap: "round" !][end]
+        [input = class: "contents-search", arcm-ref: "contents-search", type: "search", placeholder: "Search", aria-label: "Search", autocomplete: "off", spellcheck: "false", oninput: runtime ${ filter }$, onkeydown: runtime ${ keys }$ !]
+        [button = class: "contents-close", type: "button", onclick: runtime ${ close }$, aria-label: "Close"]Esc[end]
+      [end]
+
+      [div = class: "contents-body"]
+        [for-each = ${ lists }$, as: "group"]
+          [section = class: "contents-group"]
+            [h2]${ group.label }$[end]
+            [ul]
+              [for-each = ${ group.items }$, as: "item"]
+                [li = class: "contents-page"]
+                  [a = class: "contents-item", href: ${ item.href }$, data-find: ${ item.find }$, aria-current: ${ item.current ? "page" : null }$]
+                    [strong]${ item.title }$[end]
+                    [for-each = ${ item.text ? [item.text] : [] }$, as: "text"][span]${ text }$[end][end]
+                  [end]
+                  [for-each = ${ item.sections.length ? [item.sections] : [] }$, as: "sections"]
+                    [ul = class: "contents-sub"]
+                      [for-each = ${ sections }$, as: "sub"]
+                        [li][a = class: "contents-item", href: ${ sub.href }$, data-find: ${ `${sub.title} ${item.title}`.toLowerCase() }$]${ sub.title }$[end][end]
+                      [end]
+                    [end]
+                  [end]
+                [end]
+              [end]
+            [end]
+          [end]
+        [end]
+        [p = class: "contents-empty", arcm-ref: "contents-empty", data-hide: "true"]Nothing matches “[span][end]”.[end]
+      [end]
+
+      [div = class: "contents-foot"]
+        [span][kbd]↑[end][kbd]↓[end] move[end]
+        [span][kbd]Enter[end] open[end]
+        [span][kbd]Esc[end] close[end]
+      [end]
+    [end]
+  [end]
+[end]
+
+[style]
+  /* ###################
+     The button
+     ################### */
+  .contents-open {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    font: 14px/1.4 var(--sans);
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .contents-open:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+  .contents-open svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+  .contents-label {
+    flex: 1;
+    text-align: left;
+  }
+  kbd {
+    padding: 1px 6px;
+    font: 500 11px/1.5 var(--mono);
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+  @media (hover: none) {
+    .contents-key {
+      display: none;
+    }
+  }
+
+  /* ###################
+     The dialog: the whole screen
+     ################### */
+  .contents-dialog {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    color: var(--ink);
+    background: var(--bg);
+    border: 0;
+  }
+  .contents-dialog[open] {
+    animation: contents-in 0.16s ease-out;
+  }
+  .contents-dialog::backdrop {
+    background: var(--bg);
+  }
+  :global(html:has(.contents-dialog[open])) {
+    overflow: hidden;
+  }
+  .contents-frame {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .contents-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .contents-glass {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--faint);
+  }
+  .contents-search {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 0;
+    font: 400 20px/1.4 var(--sans);
+    color: var(--ink);
+    background: none;
+    border: 0;
+    outline: none;
+  }
+  .contents-search::placeholder {
+    color: var(--faint);
+  }
+  .contents-search::-webkit-search-cancel-button {
+    display: none;
+  }
+  .contents-close {
+    flex: none;
+    padding: 4px 10px;
+    font: 500 12px/1.5 var(--mono);
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .contents-close:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+  .contents-body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px var(--gutter) 32px;
+  }
+
+  /* ###################
+     Groups and items
+     ################### */
+  .contents-group h2 {
+    margin: 24px 0 8px;
+    font: 500 11px/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .contents-group ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .contents-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+    margin: 0 -14px;
+    text-decoration: none;
+    border-radius: 8px;
+  }
+  .contents-item strong {
+    font-weight: 500;
+  }
+  .contents-item span {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .contents-item:hover,
+  .contents-item[data-active="true"] {
+    background: var(--sunken);
+  }
+  .contents-sub {
+    margin: 2px 0 10px 2px;
+    padding-left: 14px;
+    border-left: 1px solid var(--line);
+  }
+  .contents-sub .contents-item {
+    padding: 6px 12px;
+    margin: 0 -12px 0 -2px;
+    font-size: 14px;
+    color: var(--muted);
+    border-radius: 0 8px 8px 0;
+  }
+  .contents-sub .contents-item:hover,
+  .contents-sub .contents-item[data-active="true"] {
+    color: var(--ink);
+  }
+  .contents-item[aria-current="page"] strong {
+    color: var(--accent-ink);
+  }
+  .contents-empty {
+    margin: 40px 0;
+    text-align: center;
+    color: var(--muted);
+  }
+  [data-hide="true"] {
+    display: none;
+  }
+  .contents-foot {
+    display: flex;
+    gap: 18px;
+    padding: 12px var(--gutter);
+    font-size: 12px;
+    color: var(--faint);
+    border-top: 1px solid var(--line);
+  }
+  .contents-foot kbd {
+    margin-right: 3px;
+  }
+  @media (hover: none) {
+    .contents-foot {
+      display: none;
+    }
+  }
+  @keyframes contents-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+[end]

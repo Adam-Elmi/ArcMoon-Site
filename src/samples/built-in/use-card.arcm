@@ -1,0 +1,3 @@
+[import = Card: "./Card.arcm" !]
+[Card][p]Hello![end][end:Card]
+[Card!]

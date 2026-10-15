@@ -1,0 +1,14 @@
+/* one stylesheet, both themes */
+:root {
+  --arcm-tag: #c2185b;
+  --arcm-key: #0369a1;
+  --arcm-string: #15803d;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --arcm-tag: #ff7a8c; --arcm-key: #7cc4ff; --arcm-string: #8fdba8; }
+}
+.arcm-identifier { color: var(--arcm-tag); }
+.arcm-key, .arcm-js-property { color: var(--arcm-key); }
+.arcm-string, .arcm-js-string { color: var(--arcm-string); }
+.arcm-comment { font-style: italic; opacity: 0.6; }
+.arcm-error { text-decoration: underline wavy #f43f5e; }

@@ -1,0 +1,7 @@
+[import = Panel: "./Panel.arcm" !]
+${ const tasks = ["Write docs", "Ship 1.0"]; }$
+[Panel = title: "Tasks"]
+  [ul]
+    [for-each = ${ tasks }$, as: "task"][li]${ task }$[end][end]
+  [end]
+[end:Panel]

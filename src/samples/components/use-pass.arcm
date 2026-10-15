@@ -1,0 +1,2 @@
+[import = Card: "./Card.arcm" !]
+[Card = title: "Hello", id: "intro", data-kind: "news", aria-label: "Intro card", css.margin: "8px" !]

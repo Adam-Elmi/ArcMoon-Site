@@ -1,0 +1,5 @@
+${ const name = "the component"; }$
+[div = class: "box"][slot!][end]
+[style]
+  p { color: crimson; }
+[end]

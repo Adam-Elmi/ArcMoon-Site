@@ -1,0 +1,83 @@
+# ###################
+# Docs: Loops
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "loops"]
+  [Title = id: "for-each"]\[for-each][end:Title]
+  [Text][hl = text: "[for-each]" !] writes its body once for each item of a list. Try it: add a name and press Run:[end:Text]
+  [Playground = title: "index.arcm", text: '
+    ${ const names = ["Adam", "Eid", "Ismail"]; }$
+    [ul]
+      [for-each = ${ names }$, as: "name"]
+        [li]${ name }$[end]
+      [end]
+    [end]
+  ' !]
+  [List]
+    [Item]The list comes from [hl = text: "${ }$" !] and is read when the page is built.[end:Item]
+    [Item][hl = text: "as" !] names the item. Without it, the item is called [hl = text: "value" !].[end:Item]
+  [end:List]
+
+  [Title = id: "index"]The index: i[end:Title]
+  [Text][hl = text: "i" !] is the item's position, starting at 0:[end:Text]
+  [Code = output: true, text: '
+    [for-each = ${ ["Gold", "Silver", "Bronze"] }$]
+      [p = data-place: ${ i }$]${ i + 1 }$. ${ value }$[end]
+    [end]
+  ' !]
+
+  [Title = id: "objects"]Lists of objects[end:Title]
+  [Text]Each item can be an object. Use its fields in text and in props:[end:Text]
+  [Code = output: true, text: '
+    ${ const users = [{ name: "Adam", role: "admin" }, { name: "Elmi", role: "editor" }]; }$
+    [for-each = ${ users }$, as: "user"]
+      [p = class: ${ user.role }$]${ user.name }$[end]
+    [end]
+  ' !]
+
+  [Title = id: "from-file"]Data from a file[end:Title]
+  [Text]Import a JSON file in [hl = text: "${ }$" !] and loop over it:[end:Text]
+  [Code = lang: "json", title: "posts.json", file: "src/samples/loops/posts.json" !]
+  [Code = title: "index.arcm", output: true, file: "src/samples/loops/from-file.arcm" !]
+
+  [Title = id: "nested"]Nested loops[end:Title]
+  [Text]Loops can go inside loops. The inner [hl = text: "i" !] hides the outer one, so keep the outer index in a [hl = text: "const" !] first:[end:Text]
+  [Code = output: true, text: '
+    ${ const rows = [["a", "b"], ["c"]]; }$
+    [for-each = ${ rows }$, as: "row"]
+      ${ const r = i; }$
+      [for-each = ${ row }$, as: "cell"]
+        [span]${ r }$.${ i }$ ${ cell }$[end]
+      [end]
+    [end]
+  ' !]
+
+  [Title = id: "iterables"]What you can loop over[end:Title]
+  [List]
+    [Item]Arrays, strings, [hl = text: "Set" !] and [hl = text: "Map" !]: anything JavaScript can loop over with [hl = text: "for…of" !].[end:Item]
+    [Item]An object: use [hl = text: "Object.entries(obj)" !], then [hl = text: "entry[0]" !] is the key and [hl = text: "entry[1]" !] the value.[end:Item]
+    [Item]A number of times: [hl = text: "Array.from({ length: 3 }, (_, n) => n + 1)" !] gives [hl = text: "1, 2, 3" !].[end:Item]
+    [Item]An empty list writes nothing. So do a plain object and a number.[end:Item]
+  [end:List]
+  [Code = output: true, text: '
+    ${ const prices = { tea: 2, cake: 4 }; }$
+    [for-each = ${ Object.entries(prices) }$, as: "entry"]
+      [p]${ entry[0] }$: ${ entry[1] }$ USD[end]
+    [end]
+  ' !]
+
+  [Title = id: "mistakes"]Mistakes[end:Title]
+  [Text]With [hl = text: "as" !], [hl = text: "value" !] doesn't exist. Use the name you chose:[end:Text]
+  [Code = lang: "log", text: '
+    ✗ ReferenceError: value is not defined
+  ' !]
+[end:Docs]

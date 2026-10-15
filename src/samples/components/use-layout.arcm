@@ -1,0 +1,5 @@
+[import = Layout: "./Layout.arcm" !]
+[Layout = title: "About"]
+  [h1]About us[end]
+  [p]We build pages with ArcMoon.[end]
+[end:Layout]

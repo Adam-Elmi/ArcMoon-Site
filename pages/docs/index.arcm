@@ -1,0 +1,97 @@
+# ###################
+# Docs: Getting started
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = Playground: "@/components/Playground.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+[import = Tabs: "@/components/docs/Tabs.arcm" !]
+[import = Note: "@/components/docs/Note.arcm" !]
+
+[Docs = slug: "index"]
+  [Text]ArcMoon builds [hl = text: ".arcm" !] files into HTML pages, with the CSS and JavaScript they need.[end:Text]
+
+  [Title = id: "install"]Install[end:Title]
+  [Text]Needs [Link = text: "Node.js", href: "https://nodejs.org" !] 22.12 or newer.[end:Text]
+  [Tabs = labels: ${ ["npm", "pnpm", "bun"] }$]
+    [Code = lang: "bash", copy: "always", text: "npm install -g arcmoon" !]
+    [Code = lang: "bash", copy: "always", text: "pnpm add -g arcmoon" !]
+    [Code = lang: "bash", copy: "always", text: "bun add -g arcmoon" !]
+  [end:Tabs]
+  [Text]Check it with [hl = text: "arcm -v" !]. In one project only: [hl = text: "npm install arcmoon" !], then [hl = text: "npx arcm" !].[end:Text]
+
+  [Title = id: "first-page"]Your first page[end:Title]
+  [Code = title: "pages/index.arcm", output: true, text: '
+    ${ const items = ["Write .arcm", "Run arcm build", "Open the HTML"]; }$
+    [doctype!]
+    [html = lang: "en"]
+      [head][title]My first page[end][end]
+      [body]
+        [h1]My first page[end]
+        [ul]
+          [for-each = ${ items }$, as: "item"]
+            [li]${ item }$[end]
+          [end]
+        [end]
+      [end]
+    [end]
+  ' !]
+  [List]
+    [Item][hl = text: "[tag]…[end]" !] is an HTML element; [hl = text: "[doctype!]" !] has no body.[end:Item]
+    [Item][hl = text: "${ }$" !] runs in Node.js while the page is built. Nothing runs in the browser.[end:Item]
+  [end:List]
+
+  [Title = id: "build"]Build it[end:Title]
+  [Code = lang: "bash", text: '
+    arcm build pages                 # writes dist/index.html
+    arcm build pages/index.arcm -p   # prints the HTML instead
+  ' !]
+
+  [Title = id: "component"]Add a component[end:Title]
+  [Text]A component is another [hl = text: ".arcm" !] file. It reads its props with [hl = text: "ArcMoon.props()" !]:[end:Text]
+  [Code = title: "pages/Greeting.arcm", file: "src/samples/start/Greeting.arcm" !]
+  [Code = title: "pages/index.arcm", output: true, file: "src/samples/start/use-greeting.arcm" !]
+
+  [Title = id: "interactive"]Make it interactive[end:Title]
+  [Text][hl = text: "runtime ${ }$" !] runs in the browser. Change the code and the result follows:[end:Text]
+  [Playground = title: "pages/index.arcm", text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const count = signal(0);
+    }$
+    [button = onclick: runtime ${ () => count(count() + 1) }$]
+      Clicked runtime ${ count() }$ times
+    [end]
+  ' !]
+  [Note = type: "warning"]
+    [Text]For events like [hl = text: "onclick" !], pass a function:[end:Text]
+    [List]
+      [Item][hl = text: "onclick: runtime ${ () => save() }$" !] calls [hl = text: "save()" !] on every click.[end:Item]
+      [Item][hl = text: "onclick: runtime ${ save() }$" !] calls it once, when the page loads, and never on click.[end:Item]
+    [end:List]
+  [end:Note]
+
+  [Title = id: "project"]Set up a project[end:Title]
+  [Text][hl = text: "arcm init" !] writes [hl = text: "arcmoon.config.js" !]:[end:Text]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default {
+      importAliases: { "@": "./src" },   // [import = Card: "@/components/Card.arcm" !]
+      removeComments: true,              // drop # comments from the HTML
+      timeout: 5000,                     // ms for the ${ }$ code of each file
+      bundle: [],                        // npm packages allowed in runtime code
+      outDir: "./dist"                   // where arcm build writes
+    };
+  ' !]
+
+  [Title = id: "next"]Next[end:Title]
+  [List]
+    [Item][Link = text: "Syntax", href: "syntax.html" !]: blocks, props, loops, comments.[end:Item]
+    [Item][Link = text: "Build-time code", href: "build-time.html" !]: files, data and npm packages in [hl = text: "${ }$" !].[end:Item]
+    [Item][Link = text: "Runtime code", href: "runtime.html" !]: signals, live values and refs.[end:Item]
+  [end:List]
+[end:Docs]

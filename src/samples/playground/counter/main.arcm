@@ -1,0 +1,9 @@
+# A signal holds the count: the button changes it, the text follows
+runtime ${
+  import { signal } from "arcmoon/reactive";
+  const count = signal(0);
+}$
+
+[button = onclick: runtime ${ () => count(count() + 1) }$]
+  Clicked runtime ${ count() }$ times
+[end:button]

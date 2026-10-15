@@ -1,0 +1,4 @@
+# ###################
+# A paragraph: [Text]…[end:Text]
+# ###################
+[p = class: "text"][slot!][end]

@@ -1,0 +1,3 @@
+[import = Greeting: "./Greeting.arcm" !]
+[Greeting = name: "Adam" !]
+[Greeting!]

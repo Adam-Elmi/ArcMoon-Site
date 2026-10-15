@@ -1,0 +1,7 @@
+[import = Card: "./Card.arcm" !]
+[Card =
+  title: "ArcMoon",
+  description: "A template language for web pages.
+    Write .arcm files, run arcm build,
+    and get plain HTML, CSS and JavaScript."
+!]

@@ -1,0 +1,203 @@
+# ###################
+# Docs: JavaScript API
+# ###################
+[import = Docs: "@/layouts/Docs.arcm" !]
+[import = Code: "@/components/Code.arcm" !]
+[import = hl: "@/components/docs/Hl.arcm" !]
+[import = Text: "@/components/docs/Text.arcm" !]
+[import = Title: "@/components/docs/Title.arcm" !]
+[import = Link: "@/components/docs/Link.arcm" !]
+[import = List: "@/components/docs/List.arcm" !]
+[import = Item: "@/components/docs/Item.arcm" !]
+
+[Docs = slug: "api"]
+  [Title = id: "when"]When to use it[end:Title]
+  [Text]The [hl = text: "arcm" !] command covers most sites. Use ArcMoon from JavaScript when your own code decides what to build: pages made from data, a server that renders on request, a build or watch script of your own, or a tool that reads [hl = text: ".arcm" !] files.[end:Text]
+  [Code = lang: "bash", text: "npm install arcmoon" !]
+
+  [Title = id: "all"]Everything ArcMoon exports[end:Title]
+  [List]
+    [Item][strong][hl = text: "arcmoon" !][end] (Node.js): the [hl = text: "ArcMoon" !] class with [hl = text: "compile()" !] and [hl = text: "build()" !], plus [hl = text: "buildPages()" !], [hl = text: "loadGraph()" !] and [hl = text: "CompilerError" !]. In a browser, the same import gives the browser build.[end:Item]
+    [Item][strong][hl = text: "arcmoon/core" !][end] (works anywhere, no Node.js or browser APIs): [hl = text: "lexer" !], [hl = text: "parser" !], [hl = text: "loadModules" !], [hl = text: "unknownTags" !], [hl = text: "closest" !], the constants [hl = text: "TOKEN_TYPES" !], [hl = text: "NODE_TYPES" !] and [hl = text: "COMPONENT" !], and the errors [hl = text: "LexerError" !], [hl = text: "ParserError" !] and [hl = text: "ModuleError" !].[end:Item]
+    [Item][strong][hl = text: "arcmoon/reactive" !][end] (runtime code): [hl = text: "signal" !], [hl = text: "computed" !] and [hl = text: "effect" !]. See [Link = text: "Reactivity", href: "reactivity.html" !].[end:Item]
+  [end:List]
+  [Code = lang: "js", text: '
+    import ArcMoon, { buildPages, loadGraph, CompilerError } from "arcmoon";
+    import { lexer, parser, loadModules, unknownTags, closest } from "arcmoon/core";
+  ' !]
+
+  [Title = id: "class"]new ArcMoon(options)[end:Title]
+  [Text]One [hl = text: "ArcMoon" !] object is one page. Create it with the page\'s options, then call [hl = text: "compile()" !] or [hl = text: "build()" !]. Every option:[end:Text]
+  [Code = lang: "js", text: '
+    new ArcMoon({
+      filename: "pages/index.arcm",     // the page file (or src)
+      src: "[p]Hi[end]",                // or the page as a string
+      props: { user: "Adam" },           // page data, read with ArcMoon.props()
+      importAliases: { "@": "./src" },  // short names for folders in [import] paths
+      removeComments: true,             // leave # comments out of the HTML
+      timeout: 5000,                    // ms the page\'s ${ }$ code may run
+      bundle: ["canvas-confetti"],      // npm packages runtime code may import
+      cwd: process.cwd(),               // where relative paths start
+      root: process.cwd(),              // the project folder, for the protector
+      dev: false,                       // true: readable JavaScript with source maps
+      onWarning: (w) => {}              // what to do with warnings
+    });
+  ' !]
+  [List]
+    [Item]Give [hl = text: "filename" !] or [hl = text: "src" !]. With both, [hl = text: "src" !] is the code and [hl = text: "filename" !] its name in messages and the folder its imports start from.[end:Item]
+    [Item]The API doesn\'t read [hl = text: "arcmoon.config.js" !]: pass what you need. Defaults match the CLI\'s.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "compile"]compile()[end:Title]
+  [Text]Builds the page and returns its HTML as one string, with the JavaScript in a [hl = text: "<script>" !] and the CSS in a [hl = text: "<style>" !]:[end:Text]
+  [Code = lang: "js", text: '
+    const html = await new ArcMoon({ src: "[p]Hello ${ 2 + 3 }$[end]" }).compile();
+    // "<p>Hello 5</p>"
+
+    const page = await new ArcMoon({ filename: "pages/index.arcm" }).compile();
+    // "<!doctype html><html>…"
+  ' !]
+  [Text]Because it returns a string, it fits anywhere HTML is needed. A server that builds the page on each request, with data from the URL:[end:Text]
+  [Code = lang: "js", title: "server.js", file: "src/samples/api/server.js" !]
+  [Text][hl = text: "url()" !] files in CSS are left as written, since a string has nowhere to put them. Use [hl = text: "build()" !] when the page has such files.[end:Text]
+
+  [Title = size: 3, id: "build"]build(options)[end:Title]
+  [Text]Builds the page and also returns the files it needs: JavaScript, CSS and [hl = text: "url()" !] files. It returns [hl = text: "{ html, files }" !]; each file is [hl = text: "{ path, contents }" !], with a full path:[end:Text]
+  [Code = lang: "js", text: '
+    const { html, files } = await new ArcMoon({ filename: "pages/index.arcm" }).build({
+      externalScripts: true,
+      externalStyles: true
+    });
+
+    html;    // … <link rel="stylesheet" href="./assets/index-ECRIFUJ2.css"> …
+    files;   // [{ path: "/my-site/assets/index-ECRIFUJ2.css", contents: "…" },
+             //  { path: "/my-site/assets/index-GINXCLDS.js",  contents: "…" }]
+  ' !]
+  [Text]Its options are [hl = text: "outDir" !], [hl = text: "assetsDir" !], [hl = text: "base" !], [hl = text: "externalScripts" !] and [hl = text: "externalStyles" !], as in [Link = text: "the config", href: "cli.html#options" !]. ArcMoon writes nothing; you write the files:[end:Text]
+  [Code = lang: "js", title: "build-one.js", file: "src/samples/api/build-one.js" !]
+
+  [Title = id: "buildPages"]buildPages(pages, options)[end:Title]
+  [Text]Builds many pages together, so code they share is bundled once into [hl = text: "chunks/" !]. The first argument is a list of page options (the same as [hl = text: "new ArcMoon()" !]); the second applies to all of them. It returns [hl = text: "{ pages: [{ name, html }], files }" !].[end:Text]
+  [Text][strong]Every page in a folder[end], like [hl = text: "arcm build pages" !]:[end:Text]
+  [Code = lang: "js", title: "build-folder.js", file: "src/samples/api/build-folder.js" !]
+  [Code = lang: "text", text: '
+    node build-folder.js
+    about, index + 4 files
+  ' !]
+  [Text][strong]Pages from data:[end] one template, a page per post. [hl = text: "name" !] names each page\'s HTML; without it, the name is the file name without [hl = text: ".arcm" !]:[end:Text]
+  [Code = title: "templates/Post.arcm", file: "src/samples/api/Post.arcm" !]
+  [Code = lang: "js", title: "build.js", file: "src/samples/api/build.js" !]
+  [List]
+    [Item]Shared options: [hl = text: "outDir" !], [hl = text: "assetsDir" !], [hl = text: "base" !], [hl = text: "bundle" !], [hl = text: "cwd" !], [hl = text: "dev" !], [hl = text: "externalScripts" !], [hl = text: "externalStyles" !].[end:Item]
+    [Item]Here [hl = text: "externalScripts" !] is [hl = text: "true" !] by default (unlike [hl = text: "build()" !]): pages with runtime code get JavaScript files and a shared chunk.[end:Item]
+    [Item]Props are data: the [hl = text: "[for-each]" !] in a post\'s text stays text.[end:Item]
+  [end:List]
+
+  [Title = id: "loadGraph"]loadGraph(options)[end:Title]
+  [Text]Reads a page and every component it imports, [strong]without running any code[end]. It takes the same options as [hl = text: "new ArcMoon()" !] and returns [hl = text: "{ entry, modules }" !]: the page\'s path, and a [hl = text: "Map" !] from each file\'s path to its module ([hl = text: "id" !], [hl = text: "src" !], [hl = text: "ast" !], [hl = text: "imports" !]):[end:Text]
+  [Code = lang: "js", text: '
+    const graph = await loadGraph({ filename: "pages/index.arcm", importAliases: { "@": "./src" } });
+
+    graph.entry;                  // "/my-site/pages/index.arcm"
+    [...graph.modules.keys()];    // ["/my-site/src/Card.arcm", "/my-site/pages/index.arcm"]
+  ' !]
+  [Text]A watch script that rebuilds when the page [strong]or any component it uses[end] changes:[end:Text]
+  [Code = lang: "js", title: "watch.js", file: "src/samples/api/watch.js" !]
+  [Text]The CLI uses it for [hl = text: "arcm audit" !] and [hl = text: "arcm trust" !].[end:Text]
+
+  [Title = id: "props"]Page props[end:Title]
+  [Text][hl = text: "props" !] gives a page data, the same way a component gets props:[end:Text]
+  [Code = title: "pages/index.arcm", text: '
+    ${ const { user = "guest", joined } = ArcMoon.props(); }$
+    [h1]Hi ${ user }$[end]
+    [p]Member since ${ joined.getFullYear() }$[end]
+  ' !]
+  [Code = lang: "js", text: '
+    await new ArcMoon({
+      filename: "pages/index.arcm",
+      props: { user: "Adam", joined: new Date(2026, 0, 1) }
+    }).compile();
+    // <h1>Hi Adam</h1> <p>Member since 2026</p>
+  ' !]
+  [List]
+    [Item]Props must be plain data: text, numbers, booleans, arrays, objects, [hl = text: "Date" !], [hl = text: "Map" !], [hl = text: "Set" !].[end:Item]
+    [Item]A function stops the build: [hl = text: "page props must be plain data (…): () => 1 could not be cloned." !][end:Item]
+  [end:List]
+
+  [Title = id: "warnings"]Warnings[end:Title]
+  [Text]By default each warning prints one line. With [hl = text: "onWarning" !], you get each one as an object, to collect, show or turn into an error:[end:Text]
+  [Code = lang: "js", text: '
+    const warnings = [];
+    await new ArcMoon({ src: "[dvi]x[end]", onWarning: (w) => warnings.push(w) }).compile();
+
+    warnings[0];
+    // { source: "/my-site/anonymous.arcm",
+    //   position: { line: 0, character: 0 },
+    //   message: "[dvi] is not an HTML element or an imported component (did you mean [div]?)" }
+
+    // fail a CI build on any warning
+    if (warnings.length) process.exit(1);
+  ' !]
+  [Text]Positions count from 0: [hl = text: "line: 0" !] is the first line. A page from [hl = text: "src" !] is called [hl = text: "anonymous.arcm" !].[end:Text]
+
+  [Title = id: "errors"]Errors[end:Title]
+  [Text]An error throws. Every error has [hl = text: "name" !], [hl = text: "source" !], [hl = text: "position" !] and a [hl = text: "message" !] that starts with [hl = text: "file:line:column" !]:[end:Text]
+  [Code = lang: "js", text: '
+    import ArcMoon, { CompilerError } from "arcmoon";
+    import { LexerError, ParserError, ModuleError } from "arcmoon/core";
+
+    try {
+      await new ArcMoon({ src: "[p = id: AKZB]x[end]" }).compile();
+    } catch (err) {
+      err.name;                      // "ParserError"
+      err instanceof ParserError;    // true
+      err.source;                    // "/my-site/anonymous.arcm"
+      err.position;                  // { line: 0, character: 9 }
+      err.message;                   // "/my-site/anonymous.arcm:1:10  unquoted value AKZB …"
+    }
+  ' !]
+  [List]
+    [Item][hl = text: "LexerError" !], [hl = text: "ParserError" !]: the syntax, like an unquoted value or a missing [hl = text: "[end]" !].[end:Item]
+    [Item][hl = text: "ModuleError" !]: imports, like a file that can\'t be read or a circular import.[end:Item]
+    [Item][hl = text: "EvaluatorError" !]: build-time code that threw, or ran out of time.[end:Item]
+    [Item][hl = text: "CompilerError" !]: blocks and props, like [hl = text: "[doctype]" !] with props.[end:Item]
+    [Item][hl = text: "StyleError" !]: CSS that can\'t be read in a component\'s [hl = text: "[style]" !].[end:Item]
+    [Item][hl = text: "RuntimeError" !]: runtime code and refs.[end:Item]
+    [Item][hl = text: "ProtectorError" !]: a template that isn\'t trusted; the API never asks. See [Link = text: "Protector", href: "protector.html#ci" !].[end:Item]
+  [end:List]
+  [Text]Four error classes are exported for [hl = text: "instanceof" !]; for the others, check [hl = text: "err.name" !].[end:Text]
+
+  [Title = id: "core"]arcmoon/core[end:Title]
+  [Text]The parts ArcMoon itself is built from, for tools like editors, linters and highlighters. They run no code and use no Node.js or browser APIs.[end:Text]
+
+  [Title = size: 3, id: "lexer"]lexer(src, filename)[end:Title]
+  [Text]Splits ArcMoon code into tokens: brackets, names, strings, text, code. Each token has a [hl = text: "type" !] (one of [hl = text: "TOKEN_TYPES" !]), its [hl = text: "value" !], and its place:[end:Text]
+  [Code = lang: "js", file: "src/samples/api/core-lexer.js" !]
+  [Text]It throws [hl = text: "LexerError" !] for code it can\'t split, like a [hl = text: "${" !] that never closes: [hl = text: "a.arcm:1:1  logic block is not closed with }$" !].[end:Text]
+
+  [Title = size: 3, id: "parser"]parser(tokens)[end:Title]
+  [Text]Turns tokens into a tree of nodes: blocks with their props and bodies, text, comments, code. Each node has a [hl = text: "type" !] from [hl = text: "NODE_TYPES" !]: [hl = text: "Block" !], [hl = text: "Text" !], [hl = text: "Comment" !], [hl = text: "CommentBlock" !], [hl = text: "StaticLogic" !], [hl = text: "RuntimeLogic" !], [hl = text: "Import" !], [hl = text: "Slot" !], [hl = text: "ForEach" !]:[end:Text]
+  [Code = lang: "js", file: "src/samples/api/core-parser.js" !]
+  [Text]It throws [hl = text: "ParserError" !] for blocks that don\'t fit together: [hl = text: "b.arcm:1:5  [p] opened at 1:1 is missing [end]" !].[end:Text]
+
+  [Title = size: 3, id: "loadModules"]loadModules(entry, host, options)[end:Title]
+  [Text]Loads a page and its imports from anywhere: memory, a database, the network. You give it a [strong]host[end] with two functions: [hl = text: "resolve(path, fromFile)" !] turns an import path into a file id, and [hl = text: "readFile(id)" !] returns the file\'s text. [hl = text: "options" !] takes [hl = text: "importAliases" !]:[end:Text]
+  [Code = lang: "js", file: "src/samples/api/core-modules.js" !]
+  [List]
+    [Item]It returns [hl = text: "{ entry, modules }" !], like [hl = text: "loadGraph()" !], which is this function with a host that reads your disk.[end:Item]
+    [Item]Blocks named like an import become nodes of type [hl = text: "COMPONENT" !] ([hl = text: "\"Component\"" !]), with the component\'s [hl = text: "name" !] and [hl = text: "module" !].[end:Item]
+    [Item]It throws [hl = text: "ModuleError" !] for a file the host can\'t read, or a circular import.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "unknownTags"]unknownTags(graph)[end:Title]
+  [Text]Returns the warnings for a loaded graph: blocks that aren\'t HTML, SVG, MathML or an imported component, values without a name on elements, and [hl = text: "css." !] names that aren\'t CSS properties. Each is [hl = text: "{ source, position, message }" !], as in the example above. It runs no code.[end:Text]
+
+  [Title = size: 3, id: "closest"]closest(name, names)[end:Title]
+  [Text]The "did you mean" helper: the name in a list closest to a typo, or [hl = text: "null" !] if none is close:[end:Text]
+  [Code = lang: "js", text: '
+    import { closest } from "arcmoon/core";
+
+    closest("colr", ["color", "border"]);   // "color"
+    closest("zzz", ["color"]);              // null
+  ' !]
+[end:Docs]

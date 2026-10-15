@@ -1,0 +1,6 @@
+# Page header
+[h1]Welcome[end] # shown on every page
+###
+  License: MIT
+###
+[p]Hello[end]

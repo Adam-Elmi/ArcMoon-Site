@@ -1,0 +1,4 @@
+[import = Panel: "./Panel.arcm" !]
+[Panel = title: "With a body"][p]Here it is.[end][end:Panel]
+[Panel = title: "Self-closing" !]
+[Panel = title: "Empty body"][end:Panel]

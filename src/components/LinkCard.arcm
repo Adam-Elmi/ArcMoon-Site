@@ -1,0 +1,138 @@
+# ###################
+# A card that links somewhere: a crescent moon and a dot grid in the corner (like the hero),
+# a number and a version on top, a name and one line. On hover it lifts, the moon turns, an arrow comes in
+# Props: href, title, text, n (the number on top), version, tags (short labels like "Official")
+# ###################
+${
+  const { href, title, text = "", n = "", version = null, tags = [] } = ArcMoon.props();
+  const versions = version ? [version] : [];
+}$
+[a = class: "card", href: ${ href }$]
+  [span = class: "top"]
+    [span = class: "n", aria-hidden: "true"]${ n }$[end]
+    [for-each = ${ versions }$, as: "v"][span = class: "version"]v${ v }$[end][end]
+  [end]
+  [h2]${ title }$[span = class: "arrow", aria-hidden: "true"]→[end][end]
+  [p]${ text }$[end]
+  [span = class: "tags"][for-each = ${ tags }$, as: "tag"][span = class: "tag"]${ tag }$[end][end][end]
+[end]
+
+[style]
+  .card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    min-height: 190px;
+    padding: 22px 24px 26px;
+    color: inherit;
+    text-decoration: none;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: radial-gradient(color-mix(in srgb, var(--accent) 22%, transparent) 1px, transparent 1px);
+    background-size: 16px 16px;
+    mask-image: radial-gradient(circle at 100% 100%, black, transparent 65%);
+    opacity: 0.7;
+    transition: opacity 0.25s ease;
+  }
+  .card::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    right: -86px;
+    bottom: -86px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    box-shadow: inset 24px -16px 0 0 var(--accent);
+    opacity: 0.1;
+    transition: transform 0.5s ease, opacity 0.25s ease;
+  }
+  .card:hover,
+  .card:focus-visible {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+    box-shadow: 0 14px 32px -18px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  .card:hover::before,
+  .card:focus-visible::before {
+    opacity: 1;
+  }
+  .card:hover::after,
+  .card:focus-visible::after {
+    opacity: 0.2;
+    transform: rotate(-24deg) scale(1.06);
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 22px;
+  }
+  .n {
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .version {
+    padding: 3px 9px;
+    font: 500 11px/1.4 var(--mono);
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 18px 0 0;
+    font: 600 20px/1.3 var(--mono);
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+  .arrow {
+    color: var(--accent);
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .card:hover .arrow,
+  .card:focus-visible .arrow {
+    opacity: 1;
+    transform: none;
+  }
+  p {
+    max-width: 28ch;
+    margin: 0;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+  }
+  .tags:empty {
+    display: none;
+  }
+  .tag {
+    padding: 2px 8px;
+    font: 500 11px/1.5 var(--mono);
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-radius: 6px;
+  }
+[end]
