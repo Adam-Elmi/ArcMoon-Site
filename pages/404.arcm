@@ -1,6 +1,7 @@
 # ###################
 # 404: shown for any address that has no page
-# Links start at "/" because this page can be served from any folder
+# Links start at "/" because this page can be served from any folder;
+# on a GitHub Pages project site they get the repo's folder in front
 # ###################
 [import = Site: "@/layouts/Site.arcm" !]
 
@@ -10,6 +11,16 @@ runtime ${
   // ###################
   const path = ArcMoon.ref(ArcMoon.defineRef("path"));
   path.textContent = decodeURIComponent(location.pathname);
+
+  // ###################
+  // GitHub Pages: user.github.io/ArcMoon-Site/… puts the site in /ArcMoon-Site/
+  // ###################
+  const project = location.hostname.endsWith(".github.io") ? location.pathname.split("/")[1] : "";
+  if (project) {
+    for (const a of document.querySelectorAll('a[href^="/"]:not([href^="//"])')) {
+      a.setAttribute("href", `/${project}${a.getAttribute("href")}`);
+    }
+  }
 }$
 
 [Site = title: "Page not found", description: "This page doesn't exist.", root: "/", section: "404"]
