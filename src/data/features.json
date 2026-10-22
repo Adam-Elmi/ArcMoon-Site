@@ -105,7 +105,7 @@
 		"text": "One command builds every page. No server needed: put dist/ on any static host.",
 		"link": {
 			"href": "docs/cli.html",
-			"label": "CLI and config"
+			"label": "CLI"
 		},
 		"glyph": "dist/",
 		"examples": [

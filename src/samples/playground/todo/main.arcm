@@ -1,16 +1,40 @@
-# Add tasks in the browser: refs and a little runtime code
+# A to-do list: the tasks live in a signal, and a live [for-each] draws them
 runtime ${
-  const list = ArcMoon.ref(ArcMoon.defineRef("list"));
+  import { signal, computed } from "arcmoon/reactive";
+  const todos = signal([
+    { id: 1, title: "Read the docs", done: true },
+    { id: 2, title: "Build a page", done: false }
+  ]);
+  const left = computed(() => todos().filter((t) => !t.done).length);
   const task = ArcMoon.ref(ArcMoon.defineRef("task"));
+
   const add = (e) => {
     e.preventDefault();
-    list.append(Object.assign(document.createElement("li"), { textContent: task.value }));
+    todos([...todos(), { id: Date.now(), title: task.value, done: false }]);
     task.value = "";
   };
+  const toggle = (id) => todos(todos().map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  const remove = (id) => todos(todos().filter((t) => t.id !== id));
 }$
 
 [form = onsubmit: runtime ${ add }$]
   [input = arcm-ref: "task", placeholder: "New task", required: true !]
   [button]Add[end:button]
 [end:form]
-[ul = arcm-ref: "list"][end:ul]
+
+[ul]
+  [for-each = runtime ${ todos() }$, as: "todo", key: "id"]
+    [li = class: runtime ${ todo.done ? "done" : "" }$]
+      [label]
+        [input = type: "checkbox", checked: runtime ${ todo.done }$, onchange: runtime ${ () => toggle(todo.id) }$ !]
+        runtime ${ todo.title }$
+      [end:label]
+      [button = onclick: runtime ${ () => remove(todo.id) }$]Delete[end:button]
+    [end:li]
+  [end]
+[end:ul]
+[p]runtime ${ left() }$ left[end:p]
+
+[style]
+  .done label { text-decoration: line-through; opacity: 0.6; }
+[end]

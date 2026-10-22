@@ -1,0 +1,58 @@
+# ###################
+# SearchButton: the docs sidebar's search box. It opens the site search (Contents, in the
+# header) by sending it the "arcmoon:search" event
+# Props: label (default "Search")
+# ###################
+${ const { label = "Search" } = ArcMoon.props(); }$
+
+runtime ${
+  const open = () => document.dispatchEvent(new Event("arcmoon:search"));
+}$
+
+[button = class: "search-box", type: "button", onclick: runtime ${ open }$, aria-haspopup: "dialog"]
+  [svg = viewBox: "0 0 16 16", aria-hidden: "true"][circle = cx: "7", cy: "7", r: "4.5", fill: "none", stroke: "currentColor", stroke-width: "1.5" !][path = d: "M10.5 10.5 14 14", stroke: "currentColor", stroke-width: "1.5", stroke-linecap: "round" !][end]
+  [span]${ label }$[end]
+  [kbd]/[end]
+[end]
+
+[style]
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    font: 14px/1.4 var(--sans);
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .search-box:hover {
+    color: var(--ink);
+    border-color: var(--line-strong);
+  }
+  svg {
+    flex: none;
+    width: 14px;
+    height: 14px;
+  }
+  span {
+    flex: 1;
+    text-align: left;
+  }
+  kbd {
+    padding: 1px 6px;
+    font: 500 11px/1.5 var(--mono);
+    color: var(--muted);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
+  @media (hover: none) {
+    kbd {
+      display: none;
+    }
+  }
+[end]

@@ -1,5 +1,5 @@
 # ###################
-# Docs: CLI and config
+# Docs: CLI (commands, flags, output, messages; the options are in config.arcm)
 # ###################
 [import = Docs: "@/layouts/Docs.arcm" !]
 [import = Code: "@/components/Code.arcm" !]
@@ -146,147 +146,15 @@
   ' !]
 
   [Title = id: "config"]arcmoon.config.js[end:Title]
-  [Text][hl = text: "arcm init" !] creates the config in the current folder. Every option, with its default:[end:Text]
+  [Text][hl = text: "arcm init" !] creates the config in the current folder. ArcMoon reads it [strong]only from the folder you run [hl = text: "arcm" !] in[end], never from a parent folder. [hl = text: "arcm show config" !] prints what it found.[end:Text]
   [Code = lang: "js", title: "arcmoon.config.js", text: '
     export default {
-      importAliases: { "@": "./src" },   // short names for folders in [import] paths
-      removeComments: true,              // leave # comments out of the HTML
-      timeout: 5000,                     // ms each page\'s ${ }$ code may run
-      bundle: [],                        // npm packages allowed in runtime code
-      outDir: "./dist",                  // where arcm build writes
-      externalScripts: false,            // true: JavaScript in files, not inside the HTML
-      externalStyles: false,             // true: CSS in files, not inside the HTML
-      assetsDir: "assets",               // folder inside outDir for JS, CSS and url() files
-      base: undefined                    // e.g. "/": file URLs from the site root
+      importAliases: { "@": "./src" },
+      bundle: ["canvas-confetti"],
+      outDir: "./dist"
     };
   ' !]
-  [Text]ArcMoon reads it [strong]only from the folder you run [hl = text: "arcm" !] in[end], never from a parent folder. Run [hl = text: "arcm" !] from your project folder. [hl = text: "arcm show config" !] prints what it found.[end:Text]
-
-  [Title = id: "options"]The options[end:Title]
-  [Text]Every option is optional: leave one out, and its default is used.[end:Text]
-
-  [Title = size: 3, id: "opt-importAliases"]importAliases[end:Title]
-  [Text]Short names for folders, used at the start of [hl = text: "[import]" !] paths. Default: none.[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default {
-      importAliases: { "@": "./src", "~ui": "./src/components" }
-    };
-  ' !]
-  [Code = text: '
-    # in any file, however deep
-    [import = Card: "@/components/Card.arcm" !]   # → ./src/components/Card.arcm
-    [import = Badge: "~ui/Badge.arcm" !]          # → ./src/components/Badge.arcm
-  ' !]
-  [Text]Targets start from the project folder. Without the alias, a page in [hl = text: "pages/blog/" !] would need [hl = text: "../../src/components/Card.arcm" !]. More in [Link = text: "Import aliases", href: "components.html#aliases" !].[end:Text]
-
-  [Title = size: 3, id: "opt-removeComments"]removeComments[end:Title]
-  [Text]Whether [hl = text: "#" !] and [hl = text: "###" !] comments are left out of the HTML. Default: [hl = text: "true" !].[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { removeComments: false };
-  ' !]
-  [Code = text: '
-    # Page header
-    [h1]Home[end]
-  ' !]
-  [Code = lang: "html", title: "HTML with removeComments: false", text: '
-    <!-- Page header-->
-    <h1>Home</h1>
-  ' !]
-  [Text]With the default, the HTML is just [hl = text: "<h1>Home</h1>", selectColor: 1 !]. Keep comments when they should ship with the page, like a license note. More in [Link = text: "Comments", href: "comments.html#keep" !].[end:Text]
-
-  [Title = size: 3, id: "opt-timeout"]timeout[end:Title]
-  [Text]How many milliseconds each page\'s [hl = text: "${ }$" !] code may run, its components included. Default: [hl = text: "5000" !] (5 seconds).[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { timeout: 10000 };   // 10 seconds, for pages that fetch a slow API
-  ' !]
-  [Text]Code that takes longer is stopped: endless loops, timers and pending requests all end, and the build stops with:[end:Text]
-  [Code = lang: "log", text: '
-    ✗ ${ }$ code took longer than 10000 ms and was stopped
-      pages/stats.arcm
-  ' !]
-  [Text]Raise it only if a page really needs the time. A page that hangs usually has a bug, and the timeout is what stops it.[end:Text]
-
-  [Title = size: 3, id: "opt-bundle"]bundle[end:Title]
-  [Text]The npm packages runtime code may import. Default: none. Runtime code goes to every visitor, so ArcMoon only bundles packages you list:[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { bundle: ["canvas-confetti", "dayjs"] };
-  ' !]
-  [Code = text: '
-    runtime ${ import confetti from "canvas-confetti"; }$
-    [button = onclick: runtime ${ () => confetti() }$]Party[end]
-  ' !]
-  [Text]Install the package first ([hl = text: "npm install canvas-confetti" !]). Without the entry, the build stops:[end:Text]
-  [Code = lang: "log", text: '
-    ✗ runtime import "canvas-confetti" is not listed in bundle (arcmoon.config.js)
-  ' !]
-  [Text]Not needed for [hl = text: "arcmoon/reactive" !], your own [hl = text: ".js" !] files, packages used only in [hl = text: "${ }$" !] (they never reach the browser), or CSS [hl = text: "@import" !]s.[end:Text]
-
-  [Title = size: 3, id: "opt-outDir"]outDir[end:Title]
-  [Text]The folder [hl = text: "arcm build" !] writes into. Default: [hl = text: "\"./dist\"" !].[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { outDir: "./public" };
-  ' !]
-  [Code = lang: "text", text: '
-    arcm build pages/about.arcm
-    ✓ pages/about.arcm → public/about.html  14 B
-  ' !]
-  [Text][hl = text: "-o" !] on the command line wins over it: [hl = text: "arcm build pages/blog -o public/blog" !].[end:Text]
-
-  [Title = size: 3, id: "opt-externalScripts"]externalScripts[end:Title]
-  [Text]Where each page\'s JavaScript goes. Default: [hl = text: "false" !], inside the HTML in a [hl = text: "<script>" !].[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { externalScripts: true };
-  ' !]
-  [Code = lang: "text", title: "dist/", text: '
-    index.html              <script type="module" src="./assets/index-MTLSBKEV.js">
-    assets/
-      index-MTLSBKEV.js     this page\'s code
-      chunks/
-        chunk-E7XXX4QS.js   code shared by pages, like arcmoon/reactive
-  ' !]
-  [List]
-    [Item][strong]Inside (default):[end] one file per page, nothing else to copy. Good for small sites and single pages.[end:Item]
-    [Item][strong]In files:[end] shared code is downloaded once and cached across pages. Good for sites with many pages.[end:Item]
-  [end:List]
-
-  [Title = size: 3, id: "opt-externalStyles"]externalStyles[end:Title]
-  [Text]Where each page\'s CSS goes. Default: [hl = text: "false" !], inside the HTML in a [hl = text: "<style>" !].[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { externalStyles: true };
-  ' !]
-  [Code = lang: "text", title: "dist/", text: '
-    index.html              <link rel="stylesheet" href="./assets/index-IH2BDP4O.css">
-    assets/
-      index-IH2BDP4O.css    all of this page\'s CSS
-  ' !]
-  [Text]It is separate from [hl = text: "externalScripts" !]: you can have the JavaScript in files and the CSS inside the page, or the other way round.[end:Text]
-
-  [Title = size: 3, id: "opt-assetsDir"]assetsDir[end:Title]
-  [Text]The folder inside [hl = text: "outDir" !] for JavaScript and CSS files, and for [hl = text: "url()" !] files copied from CSS. Default: [hl = text: "\"assets\"" !].[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { externalScripts: true, assetsDir: "static" };
-  ' !]
-  [Code = lang: "text", title: "dist/", text: '
-    index.html              <script type="module" src="./static/index-QZCVOMHP.js">
-    static/
-      index-QZCVOMHP.js
-  ' !]
-
-  [Title = size: 3, id: "opt-base"]base[end:Title]
-  [Text]How pages link to those files. Default: relative to each page ([hl = text: "./assets/…" !]). Set it to the URL where [hl = text: "outDir" !] is served:[end:Text]
-  [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { externalScripts: true, base: "/" };
-  ' !]
-  [Code = lang: "html", text: '
-    <!-- default -->
-    <script type="module" src="./assets/index-MTLSBKEV.js"></script>
-    <!-- base: "/" -->
-    <script type="module" src="/assets/index-MTLSBKEV.js"></script>
-  ' !]
-  [List]
-    [Item]Use it when pages are served from paths that don\'t match their files, for example by a server that rewrites URLs.[end:Item]
-    [Item]Keep the default when you build subfolders with [hl = text: "-o" !]: each [hl = text: "-o" !] build gets its own [hl = text: "assets/" !] ([hl = text: "dist/blog/assets/" !]), and relative links find it. With [hl = text: "base: \"/\"" !], a page in [hl = text: "dist/blog/" !] would link to [hl = text: "/assets/…" !] and miss it.[end:Item]
-  [end:List]
+  [Text]Every option, with its default, an example and when to use it, is on [Link = text: "Configuration", href: "config.html" !].[end:Text]
 
   [Title = id: "output"]What the build writes[end:Title]
   [Text]By default each page is one HTML file, with its JavaScript and CSS inside. With [hl = text: "externalScripts" !] and [hl = text: "externalStyles" !], they move to files:[end:Text]

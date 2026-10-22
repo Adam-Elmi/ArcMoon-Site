@@ -1,16 +1,16 @@
 # ###################
-# Packages: ready-made .arcm files from the community, coming in ArcMoon 1.1.0
+# Packages: ready-made .arcm files from the community, coming in ArcMoon 1.2.0
 # ###################
 [import = Site: "@/layouts/Site.arcm" !]
 
-[Site = title: "Packages", description: "Ready-made .arcm files from the community. Coming in ArcMoon 1.1.0.", section: "packages"]
+[Site = title: "Packages", description: "Ready-made .arcm files from the community. Coming in ArcMoon 1.2.0.", section: "packages"]
   [section = class: "wrap packages"]
     [p = class: "kicker"]Packages[end]
     [h1]Packages[end]
     [p = class: "intro"]Ready-made [code].arcm[end] files you can drop into any page: buttons, menus, layouts and more.[end]
     [div = class: "soon"]
-      [span = class: "badge"]Coming in v1.1.0[end]
-      [p]Packages aren\'t ready yet. They come with ArcMoon 1.1.0.[end]
+      [span = class: "badge"]Coming in v1.2.0[end]
+      [p]Packages aren\'t ready yet. They come with ArcMoon 1.2.0.[end]
     [end]
   [end]
 [end:Site]

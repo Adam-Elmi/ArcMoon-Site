@@ -1,14 +1,22 @@
 # ###################
-# Contents: a button that opens a full-screen table of contents with a search
+# Contents: a button that opens a full-screen table of contents with a search.
+# Typing searches the full text of the docs and release pages (Pagefind's index, made by
+# npm run build in dist/pagefind); without the index, it filters the titles below
 # Props:
 #   groups: [{ label, items: [{ title, href, text, current, sections: [{ title, href }] }] }]
 #           (text: a short line under the title; sections: the page's headings)
 #   label: the button text (default "Contents")
 #   hotkey: open with Ctrl/⌘ K and "/" (default true)
+#   root: the path from this page to the site root, where pagefind/ is (default "../")
+#   button: "full" (a search box, default) or "icon" (a square icon button, for the header)
+# Anything can open it with document.dispatchEvent(new Event("arcmoon:search")) (SearchButton.arcm)
 # ###################
 ${
-  const { groups = [], label = "Contents", hotkey = true } = ArcMoon.props();
+  const { groups = [], label = "Contents", hotkey = true, root = "../", button = "full" } = ArcMoon.props();
   export const useHotkey = hotkey;
+  // "" (the home page) would be the page itself in new URL(): "./" is the folder
+  export const siteRoot = root || "./";
+  const openClass = button === "icon" ? "contents-open contents-icon" : "contents-open";
   const lists = groups.map((g) => ({
     label: g.label,
     items: g.items.map((item) => ({
@@ -66,14 +74,94 @@ runtime ${
   };
 
   // ###################
+  // Full-text search with Pagefind: pages, their matching sections, and a snippet with the
+  // words marked. Loaded when the dialog first opens; false when there is no index
+  // ###################
+  const body = ArcMoon.ref(ArcMoon.defineRef("contents-body"));
+  const results = ArcMoon.ref(ArcMoon.defineRef("contents-results"));
+  let pagefind = null;
+  const index = async () => {
+    if (pagefind === null) {
+      try {
+        const found = await import(new URL(`${siteRoot}pagefind/pagefind.js`, location.href).href);
+        await found.options({ baseUrl: new URL(siteRoot, location.href).pathname });
+        found.init();
+        pagefind = found;
+      } catch {
+        pagefind = false;
+      }
+    }
+    return pagefind;
+  };
+  const showResults = (on) => {
+    body.dataset.hide = String(on);
+    results.dataset.hide = String(!on);
+  };
+  const link = (href, title, excerpt, group) => {
+    const a = document.createElement("a");
+    a.className = "contents-item";
+    a.href = href;
+    a.dataset.hit = "true";
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    a.append(strong);
+    if (group) a.append(Object.assign(document.createElement("small"), { textContent: group }));
+    // Pagefind's excerpts are escaped text with <mark> around the matches
+    if (excerpt) a.append(Object.assign(document.createElement("span"), { innerHTML: excerpt }));
+    return a;
+  };
+  const render = (pages, q) => {
+    const list = document.createElement("ul");
+    for (const page of pages) {
+      const li = document.createElement("li");
+      li.className = "contents-page";
+      li.append(link(page.url, page.meta.title ?? page.url, page.excerpt, page.meta.group));
+      const subs = (page.sub_results ?? []).filter((sub) => sub.url !== page.url).slice(0, 3);
+      if (subs.length) {
+        const ul = document.createElement("ul");
+        ul.className = "contents-sub";
+        for (const sub of subs) {
+          const item = document.createElement("li");
+          item.append(link(sub.url, sub.title, sub.excerpt));
+          ul.append(item);
+        }
+        li.append(ul);
+      }
+      list.append(li);
+    }
+    const none = Object.assign(document.createElement("p"), { className: "contents-empty" });
+    none.append("Nothing matches “", Object.assign(document.createElement("span"), { textContent: q }), "”.");
+    results.replaceChildren(pages.length ? list : none);
+    showResults(true);
+    mark(pages.length ? 0 : -1);
+  };
+  let ticket = 0;
+  const search = async () => {
+    const q = input.value.trim();
+    const mine = ++ticket;
+    filter();
+    if (!q) return showResults(false);
+    const found = await index();
+    if (mine !== ticket || !found) return;
+    const answer = await found.debouncedSearch(q, {}, 120);
+    if (!answer || mine !== ticket) return;
+    // Pagefind can return a page for a word it doesn't have, with no matched words: skip those
+    const pages = await Promise.all(answer.results.filter((r) => r.words?.length).slice(0, 10).map((r) => r.data()));
+    if (mine === ticket) render(pages, q);
+  };
+
+  // ###################
   // Open, close, and the keyboard
   // ###################
   const open = () => {
     if (dialog.open) return;
     input.value = "";
+    ticket++;
     filter();
+    showResults(false);
     dialog.showModal();
     input.focus();
+    index();
   };
   const close = () => dialog.close();
   const keys = (e) => {
@@ -95,6 +183,7 @@ runtime ${
     if (e.target.closest(".contents-item")) close();
     else if (e.target === dialog) close();
   };
+  document.addEventListener("arcmoon:search", open);
   if (useHotkey) {
     document.addEventListener("keydown", (e) => {
       const typing = e.target.closest("input, textarea, select, [contenteditable], .cm-editor");
@@ -107,7 +196,7 @@ runtime ${
 }$
 
 [div = class: "contents"]
-  [button = class: "contents-open", type: "button", onclick: runtime ${ open }$, aria-haspopup: "dialog"]
+  [button = class: ${ openClass }$, type: "button", onclick: runtime ${ open }$, aria-haspopup: "dialog", aria-label: ${ label }$, title: ${ hotkey ? `${label} (/)` : label }$]
     [svg = viewBox: "0 0 16 16", aria-hidden: "true"][circle = cx: "7", cy: "7", r: "4.5", fill: "none", stroke: "currentColor", stroke-width: "1.5" !][path = d: "M10.5 10.5 14 14", stroke: "currentColor", stroke-width: "1.5", stroke-linecap: "round" !][end]
     [span = class: "contents-label"]${ label }$[end]
     [for-each = ${ hotkey ? [1] : [] }$][kbd = class: "contents-key"]/[end][end]
@@ -117,11 +206,11 @@ runtime ${
     [div = class: "contents-frame"]
       [div = class: "contents-head"]
         [svg = class: "contents-glass", viewBox: "0 0 16 16", aria-hidden: "true"][circle = cx: "7", cy: "7", r: "4.5", fill: "none", stroke: "currentColor", stroke-width: "1.5" !][path = d: "M10.5 10.5 14 14", stroke: "currentColor", stroke-width: "1.5", stroke-linecap: "round" !][end]
-        [input = class: "contents-search", arcm-ref: "contents-search", type: "search", placeholder: "Search", aria-label: "Search", autocomplete: "off", spellcheck: "false", oninput: runtime ${ filter }$, onkeydown: runtime ${ keys }$ !]
+        [input = class: "contents-search", arcm-ref: "contents-search", type: "search", placeholder: "Search", aria-label: "Search", autocomplete: "off", spellcheck: "false", oninput: runtime ${ search }$, onkeydown: runtime ${ keys }$ !]
         [button = class: "contents-close", type: "button", onclick: runtime ${ close }$, aria-label: "Close"]Esc[end]
       [end]
 
-      [div = class: "contents-body"]
+      [div = class: "contents-body", arcm-ref: "contents-body"]
         [for-each = ${ lists }$, as: "group"]
           [section = class: "contents-group"]
             [h2]${ group.label }$[end]
@@ -146,6 +235,7 @@ runtime ${
         [end]
         [p = class: "contents-empty", arcm-ref: "contents-empty", data-hide: "true"]Nothing matches “[span][end]”.[end]
       [end]
+      [div = class: "contents-body contents-results", arcm-ref: "contents-results", data-hide: "true", aria-live: "polite"][end]
 
       [div = class: "contents-foot"]
         [span][kbd]↑[end][kbd]↓[end] move[end]
@@ -181,6 +271,25 @@ runtime ${
     flex: none;
     width: 14px;
     height: 14px;
+  }
+  /* the header's icon button: the same square as the theme button next to it */
+  .contents-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: var(--ink);
+    background: transparent;
+    border-radius: 8px;
+  }
+  .contents-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+  .contents-icon .contents-label,
+  .contents-icon kbd {
+    display: none;
   }
   .contents-label {
     flex: 1;
@@ -333,6 +442,66 @@ runtime ${
   }
   .contents-item[aria-current="page"] strong {
     color: var(--accent-ink);
+  }
+  /* ###################
+     Search results (drawn by runtime code, so :global): the page, its group, a snippet with
+     the matches marked, and up to three matching sections
+     ################### */
+  .contents-results :global(ul) {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .contents-results :global(.contents-item) {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 14px;
+    margin: 0 -14px;
+    color: var(--ink);
+    text-decoration: none;
+    border-radius: 8px;
+  }
+  .contents-results :global(.contents-item strong) {
+    font-weight: 500;
+  }
+  .contents-results :global(.contents-item small) {
+    font: 500 11px/1.4 var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .contents-results :global(.contents-item span) {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .contents-results :global(mark) {
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border-radius: 3px;
+  }
+  .contents-results :global(.contents-item:hover),
+  .contents-results :global(.contents-item[data-active="true"]) {
+    background: var(--sunken);
+  }
+  .contents-results :global(.contents-page) {
+    margin-top: 8px;
+  }
+  .contents-results :global(.contents-sub) {
+    margin: 2px 0 10px 2px;
+    padding-left: 14px;
+    border-left: 1px solid var(--line);
+  }
+  .contents-results :global(.contents-sub .contents-item) {
+    padding: 6px 12px;
+    margin: 0 -12px 0 -2px;
+    font-size: 14px;
+    border-radius: 0 8px 8px 0;
+  }
+  .contents-results :global(.contents-empty) {
+    margin: 40px 0;
+    text-align: center;
+    color: var(--muted);
   }
   .contents-empty {
     margin: 40px 0;

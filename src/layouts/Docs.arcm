@@ -3,10 +3,9 @@
 # Props: slug (its entry in src/data/docs.json)
 # ###################
 [import = Site: "./Site.arcm" !]
-[import = Contents: "../components/docs/Contents.arcm" !]
+[import = SearchButton: "../components/docs/SearchButton.arcm" !]
 
 ${
-  import { existsSync, readFileSync } from "node:fs";
   import docs from "../data/docs.json";
   import { loadReleases } from "../lib/releases.js";
 
@@ -18,37 +17,10 @@ ${
   const prev = at > 0 ? [all[at - 1]] : [];
   const next = at < all.length - 1 ? [all[at + 1]] : [];
 
-  // ###################
-  // Contents: every docs page with its sections, the [Title = id: …] headings in its file
-  // (size 2 only; inline blocks like [hl = text: "…" !] keep their text)
-  // ###################
-  const sectionsOf = (page) => {
-    const file = new URL(`../../pages/docs/${page}.arcm`, import.meta.url);
-    if (!existsSync(file)) return [];
-    const source = readFileSync(file, "utf8");
-    return [...source.matchAll(/\[Title\s*=([^\]]*)\]([\s\S]*?)\[end:Title\]/g)]
-      .map(([, props, text]) => ({ id: props.match(/id:\s*"([^"]+)"/)?.[1], size: Number(props.match(/size:\s*(\d)/)?.[1] ?? 2), text }))
-      .filter((h) => h.id && h.size === 2)
-      .map((h) => ({
-        // escaped \[ stays text: set it aside, drop the blocks, then unescape \[ \] \# …
-        title: h.text
-          .replace(/\\\[/g, "\u0000")
-          .replace(/\[[^\]]*?text:\s*"([^"]*)"[^\]]*\]/g, "$1")
-          .replace(/\[[^\]]*\]/g, "")
-          .replace(/\u0000/g, "[")
-          .replace(/\\([\]#:,=])/g, "$1")
-          .trim(),
-        href: `${page}.html#${h.id}`
-      }));
-  };
   const newest = loadReleases().at(-1);
-  const contents = docs.map((g) => ({
-    label: g.group,
-    items: g.pages.map((p) => ({ title: p.title, href: `${p.slug}.html`, text: p.summary, current: p.slug === slug, sections: sectionsOf(p.slug) }))
-  }));
 }$
 
-[Site = title: ${ doc.title }$, description: ${ doc.summary }$, root: "../", section: "docs"]
+[Site = title: ${ doc.title }$, description: ${ doc.summary }$, root: "../", section: "docs", doc: ${ slug }$]
   [div = class: "wrap docs"]
     [nav = class: "side", aria-label: "Docs"]
       [a = class: "whats-new", href: "../versions.html"]
@@ -56,7 +28,7 @@ ${
         [strong]ArcMoon ${ newest.version }$[end]
         [span = class: "whats-new-go"]Compare versions →[end]
       [end]
-      [Contents = groups: ${ contents }$ !]
+      [SearchButton !]
       [div = class: "side-list"]
         [for-each = ${ docs }$, as: "group"]
           [p = class: "group"]${ group.group }$[end]
@@ -68,12 +40,13 @@ ${
         [end]
       [end]
     [end]
-    [article = class: "prose"]
-      [p = class: "eyebrow"]${ doc.group }$[end]
+    # data-pagefind-*: what the site search (Pagefind) indexes, and the group shown with a result
+    [article = class: "prose", data-pagefind-body: true, data-pagefind-meta: ${ `group:${doc.group}` }$]
+      [p = class: "eyebrow", data-pagefind-ignore: true]${ doc.group }$[end]
       [h1]${ doc.title }$[end]
       [p = class: "lead"]${ doc.summary }$[end]
       [slot!]
-      [nav = class: "pager", aria-label: "Previous and next"]
+      [nav = class: "pager", aria-label: "Previous and next", data-pagefind-ignore: true]
         [for-each = ${ prev }$, as: "p"]
           [a = class: "prev", href: ${ `${p.slug}.html` }$][span]Previous[end][strong]${ p.title }$[end][end]
         [end]
@@ -123,7 +96,7 @@ ${
     text-transform: uppercase;
     color: var(--faint);
   }
-  .side :global(.contents) {
+  .side :global(.search-box) {
     margin-bottom: 22px;
   }
   /* ###################
@@ -255,7 +228,7 @@ ${
     .side .whats-new {
       display: none;
     }
-    .side :global(.contents) {
+    .side :global(.search-box) {
       margin: 0;
     }
     .pager {

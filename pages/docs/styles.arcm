@@ -117,7 +117,7 @@
   [List]
     [Item][hl = text: "url()" !] files (images, fonts) are copied to [hl = text: "assets/" !] with a hash in the name, and the CSS is rewritten to match.[end:Item]
     [Item][hl = text: "@import \"normalize.css\";" !] loads an npm package\'s CSS, with no [hl = text: "bundle" !] entry.[end:Item]
-    [Item]With [hl = text: "externalStyles: true" !] in [Link = text: "arcmoon.config.js", href: "cli.html" !], the CSS goes to [hl = text: "assets/page-[hash].css" !] instead of inside the page.[end:Item]
+    [Item]With [hl = text: "externalStyles: true" !] in [Link = text: "arcmoon.config.js", href: "config.html#opt-externalStyles" !], the CSS goes to [hl = text: "assets/page-[hash].css" !] instead of inside the page.[end:Item]
     [Item]Left as written: links to other sites, a [hl = text: "[link]" !] or [hl = text: "[style]" !] with other props (like [hl = text: "media:" !]), and [hl = text: "[style]" !] with live values.[end:Item]
   [end:List]
 

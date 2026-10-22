@@ -84,6 +84,7 @@
       removeComments: true,              // drop # comments from the HTML
       timeout: 5000,                     // ms for the ${ }$ code of each file
       bundle: [],                        // npm packages allowed in runtime code
+      packages: {},                      // runtime imports loaded from a URL
       outDir: "./dist"                   // where arcm build writes
     };
   ' !]

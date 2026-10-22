@@ -219,7 +219,7 @@
     ✗ ReferenceError: undefinedThing is not defined
       page.arcm:1:7
   ' !]
-  [Text]Each page's code gets 5 seconds; change it with [hl = text: "timeout" !] in [Link = text: "arcmoon.config.js", href: "cli.html" !]. Slower code is stopped:[end:Text]
+  [Text]Each page's code gets 5 seconds; change it with [hl = text: "timeout" !] in [Link = text: "arcmoon.config.js", href: "config.html#opt-timeout" !]. Slower code is stopped:[end:Text]
   [Code = lang: "log", text: '
     ✗ page.arcm  ${ }$ code took longer than 5000 ms and was stopped
   ' !]

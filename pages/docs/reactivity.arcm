@@ -209,21 +209,21 @@ ${
 
   [Title = id: "lists"]Lists that change[end:Title]
   [Text]
-    [hl = text: "[for-each]" !] runs while building, so it can't repeat elements later. Keep the list in a signal,
-    set a new array to change it, and draw it with an effect and a ref:
+    Keep the list in a signal, set a new array to change it, and draw it with a live [hl = text: "[for-each]" !]:
+    its list is [hl = text: "runtime ${ }$" !], so the rows follow the signal (ArcMoon 1.1). More in [Link = text: "Live loops", href: "loops.html#live" !].
   [end:Text]
   [Playground = title: "index.arcm", text: '
-    [ul = arcm-ref: "list"][end]
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const items = signal(["Item 1"]);
+    }$
+    [ul]
+      [for-each = runtime ${ items() }$, as: "item"]
+        [li]runtime ${ item }$[end]
+      [end]
+    [end]
     [button = onclick: runtime ${ () => items([...items(), "Item " + (items().length + 1)]) }$]Add[end]
     [button = onclick: runtime ${ () => items(items().slice(0, -1)) }$]Remove last[end]
-    runtime ${
-      import { signal, effect } from "arcmoon/reactive";
-      const items = signal(["Item 1"]);
-      const list = ArcMoon.ref(ArcMoon.defineRef("list"));
-      effect(() => {
-        list.replaceChildren(...items().map((text) => Object.assign(document.createElement("li"), { textContent: text })));
-      });
-    }$
   ' !]
   [Text]Don\'t change an array or object in place: [hl = text: "items().push(x)" !] changes the array, but no signal is set, so nothing updates. Set a new one: [hl = text: "items([...items(), x])" !].[end:Text]
 

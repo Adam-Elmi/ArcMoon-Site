@@ -25,6 +25,7 @@
   [List]
     [Item]The list comes from [hl = text: "${ }$" !] and is read when the page is built.[end:Item]
     [Item][hl = text: "as" !] names the item. Without it, the item is called [hl = text: "value" !].[end:Item]
+    [Item]For a list that changes in the browser, use a [Link = text: "live loop", href: "#live" !].[end:Item]
   [end:List]
 
   [Title = id: "index"]The index: i[end:Title]
@@ -66,13 +67,54 @@
     [Item]Arrays, strings, [hl = text: "Set" !] and [hl = text: "Map" !]: anything JavaScript can loop over with [hl = text: "for…of" !].[end:Item]
     [Item]An object: use [hl = text: "Object.entries(obj)" !], then [hl = text: "entry[0]" !] is the key and [hl = text: "entry[1]" !] the value.[end:Item]
     [Item]A number of times: [hl = text: "Array.from({ length: 3 }, (_, n) => n + 1)" !] gives [hl = text: "1, 2, 3" !].[end:Item]
-    [Item]An empty list writes nothing. So do a plain object and a number.[end:Item]
+    [Item]An empty list writes nothing. A plain object or a number writes nothing too, with a warning that says how to loop over it.[end:Item]
   [end:List]
   [Code = output: true, text: '
     ${ const prices = { tea: 2, cake: 4 }; }$
     [for-each = ${ Object.entries(prices) }$, as: "entry"]
       [p]${ entry[0] }$: ${ entry[1] }$ USD[end]
     [end]
+  ' !]
+
+  [Title = id: "live"]Live loops[end:Title]
+  [Text]
+    When the list is [hl = text: "runtime ${ }$" !], the loop runs in the browser too: it keeps one row per item,
+    and the rows follow the list as it changes. Since ArcMoon 1.1:
+  [end:Text]
+  [Code = output: true, text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const todos = signal([{ id: 1, title: "Read a book" }, { id: 2, title: "Call Eid" }]);
+      const remove = (id) => todos(todos().filter((t) => t.id !== id));
+    }$
+    [ul]
+      [for-each = runtime ${ todos() }$, as: "todo", key: "id"]
+        [li]
+          runtime ${ i + 1 }$. runtime ${ todo.title }$
+          [button = onclick: runtime ${ () => remove(todo.id) }$]Remove[end]
+        [end]
+      [end]
+    [end]
+  ' !]
+  [List]
+    [Item]The list is a live value, usually a signal. Set a new list to change it: [hl = text: "todos([...todos(), item])" !].[end:Item]
+    [Item][hl = text: "todo" !] and [hl = text: "i" !] exist only in [hl = text: "runtime ${ }$" !] inside the loop.[end:Item]
+    [Item][hl = text: "key" !] names a property that tells items apart. Rows stay with their items: removing or reordering items moves the real rows, so an input keeps its focus. Without [hl = text: "key" !], rows follow positions.[end:Item]
+    [Item]Rows update every time the list is set, even when an item was changed in place. Events always use the row's current item.[end:Item]
+  [end:List]
+
+  [Title = size: 3, id: "live-html"]The first rows are in the HTML[end:Title]
+  [Text]
+    When the list starts as a literal ([hl = text: "signal([…])" !]) or an exported value, ArcMoon writes the first rows into the HTML.
+    The list shows before the script runs, and search engines see it. In those rows, a value is filled in when it only needs the item,
+    [hl = text: "i" !], exported values and plain JavaScript ([hl = text: "Math" !], [hl = text: "String" !], [hl = text: "JSON" !]…).
+    Other values, like another signal or your own function, fill in when the script runs. Events are always added by the script.
+  [end:Text]
+
+  [Title = size: 3, id: "live-limits"]Not inside a live loop (yet)[end:Title]
+  [Text]These stop the build with a clear message: components, a live loop inside another, [hl = text: "[slot]" !], [hl = text: "[script]" !], and [hl = text: "arcm-ref" !] (it would be on every row; use [hl = text: "arcm-shared-ref" !] and [hl = text: "ArcMoon.refs()" !]). Put the loop inside an element, like [hl = text: "[ul]" !] or [hl = text: "[main]" !].[end:Text]
+  [Code = lang: "log", text: '
+    ✗ "todo" only exists in the browser, inside a live [for-each]: use runtime ${ todo }$, not ${ todo }$
   ' !]
 
   [Title = id: "mistakes"]Mistakes[end:Title]

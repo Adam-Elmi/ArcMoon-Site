@@ -122,16 +122,21 @@
     [button = onclick: runtime ${ () => save() }$]Save[end]
   ' !]
 
-  [Title = size: 3, id: "rule-bundle"]7. npm packages must be listed in bundle[end:Title]
-  [Text]Local files and [hl = text: "arcmoon/reactive" !] don't need it. [hl = text: "node:" !] modules never work in the browser.[end:Text]
+  [Title = size: 3, id: "rule-bundle"]7. npm packages must be listed in bundle or packages[end:Title]
+  [Text][hl = text: "bundle" !] bundles a package from [hl = text: "node_modules" !]; [hl = text: "packages" !] loads it from a URL. Local files, URL imports and [hl = text: "arcmoon/reactive" !] need neither. [hl = text: "node:" !] modules never work in the browser.[end:Text]
   [Code = lang: "js", title: "arcmoon.config.js", text: '
-    export default { bundle: ["canvas-confetti"] };
+    export default {
+      bundle: ["canvas-confetti"],
+      packages: { dayjs: "https://esm.sh/dayjs@1" }
+    };
   ' !]
   [Code = text: '
     runtime ${
-      import confetti from "canvas-confetti";   // ✓ listed in bundle
-      import { add } from "./add.js";          // ✓ local file
-      import fs from "node:fs";                 // ✗ not in the browser
+      import confetti from "canvas-confetti";         // ✓ listed in bundle
+      import dayjs from "dayjs";                      // ✓ listed in packages: loaded from its URL
+      import { marked } from "https://esm.sh/marked@14"; // ✓ a URL: the browser loads it
+      import { add } from "./add.js";                 // ✓ local file
+      import fs from "node:fs";                       // ✗ not in the browser
     }$
   ' !]
 
@@ -155,6 +160,20 @@
   [Code = lang: "log", text: '
     ✗ export is not allowed in runtime code
     ✗ ArcMoon.props() only exists at build time; read props in ${ }$ and export what runtime code needs
+  ' !]
+
+  [Title = size: 3, id: "rule-await"]9. await at the top of a block, not in a live value[end:Title]
+  [Text]A code block can [hl = text: "await" !] (ArcMoon 1.1). A live value can't: live values update at once, so wait in a block and put the result in a signal. See [Link = text: "Waiting for data", href: "#await" !].[end:Text]
+  [Code = text: '
+    # ✓ right
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const user = signal(await (await fetch("/me.json")).json());
+    }$
+    [p]runtime ${ user().name }$[end]
+
+    # ✗ wrong
+    [p]runtime ${ await load() }$[end]
   ' !]
 
   [Title = id: "two-kinds"]Code blocks and live values[end:Title]
@@ -230,6 +249,38 @@
     runtime ${ import confetti from "canvas-confetti"; }$
     [button = onclick: runtime ${ () => confetti() }$]Party[end]
   ' !]
+  [Text]
+    Or don't install it: import it from a URL, and the visitor's browser loads it (ArcMoon 1.1).
+    With [hl = text: "packages" !] in the config, a short name stands for the URL, subpaths included ([hl = text: "dayjs/plugin/utc" !]):
+  [end:Text]
+  [Code = title: "index.arcm", text: '
+    runtime ${ import confetti from "https://esm.sh/canvas-confetti@1"; }$
+    [button = onclick: runtime ${ () => confetti() }$]Party[end]
+  ' !]
+  [Code = lang: "js", title: "arcmoon.config.js", text: '
+    export default {
+      packages: { dayjs: "https://esm.sh/dayjs@1" }
+    };
+  ' !]
+
+  [Title = id: "await"]Waiting for data[end:Title]
+  [Text]A code block can [hl = text: "await" !] at its top level, for data or a module (ArcMoon 1.1):[end:Text]
+  [Code = text: '
+    runtime ${
+      import { signal } from "arcmoon/reactive";
+      const books = signal(await (await fetch("/books.json")).json());
+    }$
+    [ul]
+      [for-each = runtime ${ books() }$, as: "book", key: "id"]
+        [li]runtime ${ book.title }$[end]
+      [end]
+    [end]
+  ' !]
+  [List]
+    [Item]The file's live values and events are attached after its code has run, so after the waiting. Until then the page shows its HTML.[end:Item]
+    [Item]To keep a page usable while data loads, start the signal empty and set it when the data comes, instead of waiting at the top.[end:Item]
+    [Item]An error after an [hl = text: "await" !] is reported like any other runtime error.[end:Item]
+  [end:List]
 
   [Title = id: "reactivity"]Reactivity (optional)[end:Title]
   [Text]

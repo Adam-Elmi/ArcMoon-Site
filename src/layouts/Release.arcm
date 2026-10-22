@@ -24,18 +24,19 @@ ${
 
 [Site = title: ${ `ArcMoon ${version}` }$, description: ${ summary }$, root: "../", section: "versions"]
   [VersionBar = current: ${ version }$, base: "" !]
-  [div = class: "wrap release"]
-    [a = class: "back", href: "../versions.html"]← All versions[end]
+  # the site search indexes a real release's title, summary and changes, under Versions
+  [div = class: "wrap release", data-pagefind-body: ${ !placeholder }$, data-pagefind-meta: "group:Versions"]
+    [a = class: "back", href: "../versions.html", data-pagefind-ignore: true]← All versions[end]
     [header = class: "top"]
       [h1]ArcMoon [span]${ version }$[end][end]
       [for-each = ${ latest }$, as: "l"][span = class: "tag latest"]${ l }$[end][end]
     [end]
     [p = class: "meta"]Released ${ date }$[end]
     [p = class: "summary"]${ summary }$[end]
-    [ul = class: "counts"]
+    [ul = class: "counts", data-pagefind-ignore: true]
       [for-each = ${ counts }$, as: "c"][li = data-kind: ${ c.id }$][strong]${ c.n }$[end] ${ c.n === 1 ? c.one : c.label.toLowerCase() }$[end][end]
     [end]
-    [for-each = ${ compare }$, as: "c"][a = class: "compare", href: ${ c.href }$]Compare with ${ c.from }$ →[end][end]
+    [for-each = ${ compare }$, as: "c"][a = class: "compare", href: ${ c.href }$, data-pagefind-ignore: true]Compare with ${ c.from }$ →[end][end]
 
     [for-each = ${ placeholder ? [1] : [] }$]
       [Note]
@@ -45,7 +46,7 @@ ${
 
     [article = class: "prose changes"][slot!][end]
 
-    [nav = class: "around", aria-label: "Other versions"]
+    [nav = class: "around", aria-label: "Other versions", data-pagefind-ignore: true]
       [for-each = ${ before }$, as: "b"][a = class: "older", href: ${ b.page }$][span]Older[end][strong]${ b.version }$[end][end][end]
       [for-each = ${ after }$, as: "n"][a = class: "newer", href: ${ n.page }$][span]Newer[end][strong]${ n.version }$[end][end][end]
     [end]

@@ -37,6 +37,7 @@
       removeComments: true,             // leave # comments out of the HTML
       timeout: 5000,                    // ms the page\'s ${ }$ code may run
       bundle: ["canvas-confetti"],      // npm packages runtime code may import
+      packages: { dayjs: "https://esm.sh/dayjs@1" }, // runtime imports loaded from a URL (1.1)
       cwd: process.cwd(),               // where relative paths start
       root: process.cwd(),              // the project folder, for the protector
       dev: false,                       // true: readable JavaScript with source maps
@@ -46,6 +47,7 @@
   [List]
     [Item]Give [hl = text: "filename" !] or [hl = text: "src" !]. With both, [hl = text: "src" !] is the code and [hl = text: "filename" !] its name in messages and the folder its imports start from.[end:Item]
     [Item]The API doesn\'t read [hl = text: "arcmoon.config.js" !]: pass what you need. Defaults match the CLI\'s.[end:Item]
+    [Item]Each option is explained, with its default and an example, on [Link = text: "Configuration", href: "config.html" !]; the ones only the API has are under [Link = text: "Options only in the JavaScript API", href: "config.html#api-options" !].[end:Item]
   [end:List]
 
   [Title = size: 3, id: "compile"]compile()[end:Title]
@@ -73,7 +75,7 @@
     files;   // [{ path: "/my-site/assets/index-ECRIFUJ2.css", contents: "…" },
              //  { path: "/my-site/assets/index-GINXCLDS.js",  contents: "…" }]
   ' !]
-  [Text]Its options are [hl = text: "outDir" !], [hl = text: "assetsDir" !], [hl = text: "base" !], [hl = text: "externalScripts" !] and [hl = text: "externalStyles" !], as in [Link = text: "the config", href: "cli.html#options" !]. ArcMoon writes nothing; you write the files:[end:Text]
+  [Text]Its options are [hl = text: "outDir" !], [hl = text: "assetsDir" !], [hl = text: "base" !], [hl = text: "externalScripts" !] and [hl = text: "externalStyles" !], explained in [Link = text: "Configuration", href: "config.html#build-options" !]. Like [hl = text: "buildPages()" !], [hl = text: "externalScripts" !] is [hl = text: "true" !] by default here. ArcMoon writes nothing; you write the files:[end:Text]
   [Code = lang: "js", title: "build-one.js", file: "src/samples/api/build-one.js" !]
 
   [Title = id: "buildPages"]buildPages(pages, options)[end:Title]
@@ -88,8 +90,8 @@
   [Code = title: "templates/Post.arcm", file: "src/samples/api/Post.arcm" !]
   [Code = lang: "js", title: "build.js", file: "src/samples/api/build.js" !]
   [List]
-    [Item]Shared options: [hl = text: "outDir" !], [hl = text: "assetsDir" !], [hl = text: "base" !], [hl = text: "bundle" !], [hl = text: "cwd" !], [hl = text: "dev" !], [hl = text: "externalScripts" !], [hl = text: "externalStyles" !].[end:Item]
-    [Item]Here [hl = text: "externalScripts" !] is [hl = text: "true" !] by default (unlike [hl = text: "build()" !]): pages with runtime code get JavaScript files and a shared chunk.[end:Item]
+    [Item]Shared options: [hl = text: "outDir" !], [hl = text: "assetsDir" !], [hl = text: "base" !], [hl = text: "bundle" !], [hl = text: "packages" !], [hl = text: "cwd" !], [hl = text: "dev" !], [hl = text: "externalScripts" !], [hl = text: "externalStyles" !].[end:Item]
+    [Item][hl = text: "externalScripts" !] is [hl = text: "true" !] by default, as in [hl = text: "build()" !] (the CLI\'s default is [hl = text: "false" !]): pages with runtime code get JavaScript files and a shared chunk.[end:Item]
     [Item]Props are data: the [hl = text: "[for-each]" !] in a post\'s text stays text.[end:Item]
   [end:List]
 
