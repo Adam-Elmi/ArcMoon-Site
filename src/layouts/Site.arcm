@@ -33,7 +33,6 @@ ${
     { id: "playground", text: "Playground", href: `${root}playground.html` },
     { id: "packages", text: "Packages", href: `${root}packages.html` },
     { id: "tools", text: "Tools", href: `${root}tools.html` },
-    { id: "versions", text: "Versions", href: `${root}versions.html` }
   ];
 }$
 

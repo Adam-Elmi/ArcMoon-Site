@@ -4,7 +4,6 @@
 [import = Site: "@/layouts/Site.arcm" !]
 [import = Code: "@/components/Code.arcm" !]
 [import = Features: "@/components/Features.arcm" !]
-[import = Compare: "@/components/Compare.arcm" !]
 [import = Tabs: "@/components/docs/Tabs.arcm" !]
 
 ${
@@ -40,11 +39,11 @@ runtime ${
 
     [div = class: "wrap hero-grid"]
       [div = class: "hero-text"]
-        [p = class: "hero-kicker"]ArcMoon · 1.0 stable[end]
+        [p = class: "hero-kicker"]ArcMoon · ${ArcMoon.version || "UNKNOWN VERSION"}$ [end]
         [h1]A template language for web pages.[end]
         [p = class: "pitch"]
-          Everything you need to build a web page, in one simple language.
-          ArcMoon turns it into plain HTML, CSS and JavaScript.
+          ArcMoon is a template language for web pages. You write .arcm files, and ArcMoon compiles them to plain HTML.
+          Pages ship zero JavaScript and zero CSS by default.
         [end]
         [div = class: "actions"]
           [a = class: "primary", href: "docs/index.html"]Get started[end]
@@ -88,7 +87,6 @@ runtime ${
     [end]
   [end]
 
-  [Compare!]
   [Features!]
 [end:Site]
 
@@ -98,7 +96,7 @@ runtime ${
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    padding: clamp(56px, 8vw, 104px) 0;
+    padding: clamp(56px, 8vw, 60px) 0;
     color: #fff;
     background:
       radial-gradient(circle at 85% 20%, rgb(255 255 255 / 0.16), transparent 45%),

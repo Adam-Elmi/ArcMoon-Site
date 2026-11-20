@@ -105,6 +105,7 @@ ${
     width: 2px;
     margin-left: -1px;
     background: var(--line);
+    z-index: -10;
   }
   .feature:not(:last-child) .rail::after {
     background: var(--accent);

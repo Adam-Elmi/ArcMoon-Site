@@ -3,7 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "arcm build pages && arcm build pages/docs -o dist/docs && arcm build pages/tools -o dist/tools && arcm build pages/versions -o dist/versions && pagefind --site dist",
+		"build": "arcm build pages && arcm build pages/docs -o dist/docs && arcm build pages/tools -o dist/tools && pagefind --site dist",
 		"serve": "node serve.js"
 	},
 	"dependencies": {

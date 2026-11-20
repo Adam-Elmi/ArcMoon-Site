@@ -7,7 +7,6 @@
 
 ${
   import docs from "../data/docs.json";
-  import { loadReleases } from "../lib/releases.js";
 
   const { slug } = ArcMoon.props();
   const all = docs.flatMap((g) => g.pages.map((p) => ({ ...p, group: g.group })));
@@ -17,17 +16,11 @@ ${
   const prev = at > 0 ? [all[at - 1]] : [];
   const next = at < all.length - 1 ? [all[at + 1]] : [];
 
-  const newest = loadReleases().at(-1);
 }$
 
 [Site = title: ${ doc.title }$, description: ${ doc.summary }$, root: "../", section: "docs", doc: ${ slug }$]
   [div = class: "wrap docs"]
     [nav = class: "side", aria-label: "Docs"]
-      [a = class: "whats-new", href: "../versions.html"]
-        [span = class: "whats-new-label"]What's new[end]
-        [strong]ArcMoon ${ newest.version }$[end]
-        [span = class: "whats-new-go"]Compare versions →[end]
-      [end]
       [SearchButton !]
       [div = class: "side-list"]
         [for-each = ${ docs }$, as: "group"]
